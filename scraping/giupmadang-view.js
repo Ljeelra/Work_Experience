@@ -1,7 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import puppeteer from "puppeteer";
-import { saveDetail } from '../db/db.js';
+import { saveDetail, checkExist } from '../db/db.js';
 
 const baseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/list.do';
 const detailBaseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/';
@@ -36,7 +36,8 @@ async function getTotalPage() {
 
 //공고 목록에서 상세페이지 주소 추출하는 함수
 async function scrapeData(cpage) {
-    const url = await getPageUrl(cpage);   
+    const url = await getPageUrl(cpage);
+    console.log(cpage+'페이지 스크랩중입니다.');
     try{
         const getHtml = await axios.get(url);
         const $ = cheerio.load(getHtml.data);
@@ -54,10 +55,23 @@ async function scrapeData(cpage) {
             const views = $(list).find('td').last().text().trim();
             const detail = $(list).find('.txt_l > a').attr('href');
             const detailUrl = detailBaseUrl + detail;
-            return detailData(detailUrl);
+
+            const urlParams = new URLSearchParams(new URL(detailUrl).search);
+            const pathId = urlParams.get('pblancId');
+            
+            const exists = await checkExist(pathId);
+            if (exists) {
+                console.log(`중복된 데이터: ${pathId}`);
+                return null;  // 중복된 경우 null 반환
+            }
+
+            return detailData(detailUrl, pathId);
         }).get();
 
-        return await Promise.all(detailPromises);
+        const detailDataResults = await Promise.all(detailPromises);
+        
+
+        return detailDataResults.filter(data => data !== null);;
         
 
     } catch (error) {
@@ -67,7 +81,7 @@ async function scrapeData(cpage) {
 }
 
 //상세페이지 필요 데이터 추출
-async function detailData(detailUrl) {
+async function detailData(detailUrl, pathId) {
 
     try{
         const detailHtml = await axios.get(detailUrl);
@@ -95,14 +109,32 @@ async function detailData(detailUrl) {
             requestStarted = new Date(requestStarted).toISOString().split('T')[0]; // YYYY-MM-DD format
         }
         const summary= $('.view_cont').find('.txt').eq(3).text();
-        const applyMethod = $('.view_cont').find('.txt').eq(4).text();
-        const contact = $('.view_cont').find('.txt').eq(5).text();
+
+        let applyMethodOriginal = $('.view_cont').find('.txt').eq(4).text();
+        const applyMethod = applyMethodOriginal
+
+        let applySite, contact;
+        if(applyMethod.includes('온라인 접수')){
+            const applySiteAnchor = $('.view_cont').find('.txt').eq(5).find('a');
+            applySite = applySiteAnchor.length > 0 ? applySiteAnchor.attr('href') : null;
+
+            const contactElement = $('.view_cont').find('.txt').eq(6);
+            const contactAnchor = contactElement.find('a');
+            contact = contactAnchor.length > 0 ? contactAnchor.attr('href') : contactElement.text().trim();
+        } else {
+            // 일반적인 경우 applySite는 detailUrl 그대로 사용
+            applySite = null;
+
+            const contactElement = $('.view_cont').find('.txt').eq(5);
+            const contactAnchor = contactElement.find('a');
+            contact = contactAnchor.length > 0 ? contactAnchor.attr('href') : contactElement.text().trim();
+        }
 
         const attachedFile = $('div.attached_file_list ul li');
         let attachedFileLength = attachedFile.length;
         let attachmentFile = null;
         let contentFile = null;
-        if(attachedFile.length == 1){
+        if(attachedFileLength == 1){
             contentFile = $('div.right_btn').find('a').eq(1).attr('href');
             //console.log(contentFile);
         } else{
@@ -113,9 +145,12 @@ async function detailData(detailUrl) {
             //console.log(contentFile);
         }
 
-        //console.log(title);
+        console.log(title);
+
+        const siteName = 'giupmadang';
         
         return {
+            pathId,
             category,
             title,
             department:local,
@@ -127,7 +162,8 @@ async function detailData(detailUrl) {
             contact,
             applySite:detailUrl,
             attachmentFile,
-            contentFile
+            contentFile,
+            site:siteName
         };
 
     }catch(error){
@@ -142,18 +178,19 @@ async function startScrapePages(){
         const pagePromises = [];
 
         for(let cpage=1; cpage <= 5; cpage++){
-            console.log(cpage+'페이지 스크랩중입니다.');
             pagePromises.push(scrapeData(cpage));
         }
 
         const allDataArrays = await Promise.all(pagePromises);
-        const flattenedData = allDataArrays.flat().filter(data => data !== null);
+        const flattenedData = allDataArrays.flat();
 
-        //DB삽입 함수 추가
+        console.log(`총 ${flattenedData.length}개의 데이터가 스크랩되었습니다.`);
+
+        //DB삽입 함수
         await saveDetail(flattenedData);
 
     }catch(error){
-
+        console.error('startScrapePages에서 오류 발생:', error);
     }
 }
 
