@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import puppeteer from "puppeteer";
+import { saveDetail } from '../db/db.js';
 
 const baseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/list.do';
 const detailBaseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/';
@@ -81,17 +82,21 @@ async function detailData(detailUrl) {
         let applyDate = $('.view_cont').find('.txt').eq(2).text().trim();
         applyDate = applyDate.replace(/[\n\t]/g, '');
         const date = applyDate.split('~');
-        const requestStarted = date[0].trim();
-        const requestEnded = date[1].trim();
+        let requestStarted = date[0]?.trim() || 'N/A';
+        let requestEnded = date[1]?.trim();
+        
+        if(!requestEnded || requestEnded === '') {
+            requestEnded = requestStarted;
+        }else if (!isNaN(Date.parse(requestEnded))) {
+            requestEnded = new Date(requestEnded).toISOString().split('T')[0]; // YYYY-MM-DD format
+        }
+
         if (!isNaN(Date.parse(requestStarted))) {
             requestStarted = new Date(requestStarted).toISOString().split('T')[0]; // YYYY-MM-DD format
         }
-        if (!isNaN(Date.parse(requestEnded))) {
-            requestEnded = new Date(requestEnded).toISOString().split('T')[0]; // YYYY-MM-DD format
-        }
-        const summary= $('.view_cont').find('.txt').eq(3).text().trim();
-        const applyMethod = $('.view_cont').find('.txt').eq(4).text().trim();
-        const contact = $('.view_cont').find('.txt').eq(5).text().trim();
+        const summary= $('.view_cont').find('.txt').eq(3).text();
+        const applyMethod = $('.view_cont').find('.txt').eq(4).text();
+        const contact = $('.view_cont').find('.txt').eq(5).text();
 
         const attachedFile = $('div.attached_file_list ul li');
         let attachedFileLength = attachedFile.length;
@@ -99,7 +104,7 @@ async function detailData(detailUrl) {
         let contentFile = null;
         if(attachedFile.length == 1){
             contentFile = $('div.right_btn').find('a').eq(1).attr('href');
-            console.log(contentFile);
+            //console.log(contentFile);
         } else{
             attachmentFile = $('div.right_btn').eq(0).find('a').eq(1).attr('href');
             contentFile = $('div.right_btn').eq(1).find('a').eq(1).attr('href');
@@ -108,9 +113,20 @@ async function detailData(detailUrl) {
             //console.log(contentFile);
         }
 
-        console.log(title);
+        //console.log(title);
         
-        return {category, title, local,agency, requestStarted, requestEnded, summary, applyMethod, contact};
+        return {
+            category,
+            title,
+            department:local,
+            implementingAgency:agency,
+            requestStarted,
+            requestEnded,
+            overview:summary,
+            applyMethod,
+            contact,
+            applySite:detailUrl
+        };
 
     }catch(error){
         console.error('Error fetching detail page', error);
@@ -132,6 +148,7 @@ async function startScrapePages(){
         const flattenedData = allDataArrays.flat().filter(data => data !== null);
 
         //DB삽입 함수 추가
+        await saveDetail(flattenedData);
 
     }catch(error){
 
