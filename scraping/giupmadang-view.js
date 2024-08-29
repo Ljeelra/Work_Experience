@@ -120,12 +120,14 @@ async function detailData(detailUrl) {
             title,
             department:local,
             implementingAgency:agency,
-            requestStarted,
-            requestEnded,
+            requestStartedOn:requestStarted,
+            requestEndedOn:requestEnded,
             overview:summary,
             applyMethod,
             contact,
-            applySite:detailUrl
+            applySite:detailUrl,
+            attachmentFile,
+            contentFile
         };
 
     }catch(error){
