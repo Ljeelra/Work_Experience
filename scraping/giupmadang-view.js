@@ -7,6 +7,20 @@ const baseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/list.do
 const detailBaseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/';
 const row = 15;
 
+//Axioserror: socket hang up 에러, 코드: ECONNRESET
+// Axios 인스턴스 설정
+const axiosInstance = axios.create({
+    timeout: 30000, // 30초 타임아웃
+    headers: {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cache-Control': 'max-age=0',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1'
+    },
+    family: 4,
+});
 
 //페이지포함 된 URL 생성 함수
 async function getPageUrl(cpage) {
@@ -21,7 +35,7 @@ async function getPageUrl(cpage) {
 async function getTotalPage() {
     try{
         const url = await getPageUrl(1);
-        const getHtml =  await axios.get(url);
+        const getHtml =  await axiosInstance.get(url);
         const $ = cheerio.load(getHtml.data);
         const pagenation = $('div.page_wrap');
         const lastPageLink = pagenation.find('a').last().attr('href');
@@ -39,7 +53,7 @@ async function scrapeData(cpage) {
     const url = await getPageUrl(cpage);
     console.log(cpage+'페이지 스크랩중입니다.');
     try{
-        const getHtml = await axios.get(url);
+        const getHtml = await axiosInstance.get(url);
         const $ = cheerio.load(getHtml.data);
         const table = $('div.table_Type_1 table');
         const tableRows = table.find('tbody tr');
@@ -57,8 +71,10 @@ async function scrapeData(cpage) {
             const detailUrl = detailBaseUrl + detail;
 
             const urlParams = new URLSearchParams(new URL(detailUrl).search);
-            const pathId = urlParams.get('pblancId');
             
+            
+            //중복데이터 체크
+            const pathId = urlParams.get('pblancId');           
             const exists = await checkExist(pathId);
             if (exists) {
                 console.log(`중복된 데이터: ${pathId}`);
@@ -71,7 +87,7 @@ async function scrapeData(cpage) {
         const detailDataResults = await Promise.all(detailPromises);
         
 
-        return detailDataResults.filter(data => data !== null);;
+        return detailDataResults.filter(data => data !== null);
         
 
     } catch (error) {
@@ -84,7 +100,7 @@ async function scrapeData(cpage) {
 async function detailData(detailUrl, pathId) {
 
     try{
-        const detailHtml = await axios.get(detailUrl);
+        const detailHtml = await axiosInstance.get(detailUrl);
         const $ = cheerio.load(detailHtml.data);    
         
 
@@ -145,7 +161,7 @@ async function detailData(detailUrl, pathId) {
             //console.log(contentFile);
         }
 
-        console.log(title);
+        //console.log(title);
 
         const siteName = 'giupmadang';
         
@@ -177,7 +193,7 @@ async function startScrapePages(){
         const totalPages = await getTotalPage();
         const pagePromises = [];
 
-        for(let cpage=1; cpage <= 5; cpage++){
+        for(let cpage=1; cpage <= totalPages; cpage++){
             pagePromises.push(scrapeData(cpage));
         }
 
