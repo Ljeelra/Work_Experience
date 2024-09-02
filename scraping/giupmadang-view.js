@@ -48,9 +48,9 @@ async function getTotalPage() {
 }
     
 // 데이터베이스에 없는 pathId만 필터링
-async function filterPathId(scrapedData) {
+async function filterPathId(scrapedData, siteName) {
     try {
-        const existingPathIds = await getAllPathIds();
+        const existingPathIds = await getAllPathIds(siteName);
         //console.log('Existing Path IDs:', existingPathIds);  확인을 위한 로그
         if (!Array.isArray(existingPathIds)) {
             throw new Error('Existing Path IDs is not an array');
@@ -181,7 +181,7 @@ async function detailData(detailUrl, pathId) {
 };
 
 async function giupmadang() {
-    
+    const siteName = 'giupmadang';
     try {
         const totalPages = await getTotalPage();
         const pagePromises = [];
@@ -195,7 +195,7 @@ async function giupmadang() {
 
         console.log(`총 ${allDetails.length}개의 상세페이지 URL이 스크랩되었습니다.`);
 
-        const newDetailData = await filterPathId(allDetails);
+        const newDetailData = await filterPathId(allDetails, siteName);
 
         if (newDetailData.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
@@ -212,7 +212,7 @@ async function giupmadang() {
         const filteredDataResults = detailDataResults.filter(data => data !== null);
 
         // DB 삽입 함수
-        await saveDataInChunks(filteredDataResults);
+        await saveDataInChunks(filteredDataResults, siteName);
 
     } catch (error) {
         console.error('giupmadang 함수에서 오류 발생:', error);
@@ -220,12 +220,12 @@ async function giupmadang() {
 }
 
 // 배치로 데이터를 저장하는 함수
-async function saveDataInChunks(data) {
+async function saveDataInChunks(data, siteName) {
     console.log(`Total data to insert: ${data.length}`); // 총 데이터 개수 출력
     for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
         try {
-            await saveDetail(chunk);
+            await saveDetail(chunk, siteName);
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
                 console.warn('Duplicate entry found, skipping this record.');
@@ -237,6 +237,6 @@ async function saveDataInChunks(data) {
         }
     }
 }
-giupmadang();
+
 export default giupmadang;
 

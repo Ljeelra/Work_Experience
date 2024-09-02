@@ -1,8 +1,8 @@
 import pool from '../db/mysql.js';
 
 // 데이터 삽입 함수
-export async function saveDetail(data) {
-    const insertQuery = `INSERT INTO giupmadang (pathId,category,title,department,implementingAgency, requirement, assistance, 
+export async function saveDetail(data, siteName) {
+    const insertQuery = `INSERT INTO ${siteName} (pathId,category,title,department,implementingAgency, requirement, assistance, 
     requestStartedOn,requestEndedOn,overview,applyMethod,applySite, contact, attachmentFile, contentFile, site, location) 
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
@@ -64,8 +64,8 @@ export async function saveDetail(data) {
 }
 
 // 중복 체크를 위해 pathId를 받아오자
-export async function getAllPathIds() {
-    const selectQuery = 'SELECT pathId FROM giupmadang';
+export async function getAllPathIds(siteName) {
+    const selectQuery = `SELECT pathId FROM ${siteName}`;
     try {
         const result = await executeQuery(selectQuery);
 
@@ -108,5 +108,14 @@ async function executeQuery(query, params = [], timeout = 45000) {
         throw err; // 예외를 상위 호출자에게 전달
     } finally {
         if (connection) connection.release(); // 연결 반환
+    }
+}
+
+export async function closePool() {
+    try {
+        await pool.end();
+        console.log('Database connection pool closed.');
+    } catch (error) {
+        console.error('Error closing pool:', error);
     }
 }
