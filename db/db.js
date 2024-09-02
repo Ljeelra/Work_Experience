@@ -3,34 +3,24 @@ import pool from '../db/mysql.js';
 // 데이터 삽입 함수
 export async function saveDetail(data) {
     const insertQuery = `INSERT INTO giupmadang (pathId,category,title,department,implementingAgency, requirement, assistance, 
-    requestStartedOn,requestEndedOn,overview,applyMethod,applySite, contact, attachmentFile, contentFile, site) 
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ON DUPLICATE KEY UPDATE 
-    category = VALUES(category),
-    title = VALUES(title),
-    department = VALUES(department),
-    implementingAgency = VALUES(implementingAgency),
-    requirement = VALUES(requirement),
-    assistance = VALUES(assistance),
-    requestStartedOn = VALUES(requestStartedOn),
-    requestEndedOn = VALUES(requestEndedOn),
-    overview = VALUES(overview),
-    applyMethod = VALUES(applyMethod),
-    applySite = VALUES(applySite),
-    contact = VALUES(contact),
-    attachmentFile = VALUES(attachmentFile),
-    contentFile = VALUES(contentFile),
-    site = VALUES(site)`;
+    requestStartedOn,requestEndedOn,overview,applyMethod,applySite, contact, attachmentFile, contentFile, site, location) 
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
-    const insertPromises = data.map(async (entry) => {
+    const insertPromises = data.map(async (entry, index) => {
+
+        if (!entry || typeof entry !== 'object') {
+            console.error(`Invalid entry at index ${index}:`, entry);
+            return; // 잘못된 데이터는 건너뜁니다.
+        }
+
         const {
             pathId,
             category,
             title,
             department,
             implementingAgency,
-            requirement,
-            assistance,
+            requirement = null,
+            assistance = null,
             requestStartedOn,
             requestEndedOn,
             overview,
@@ -39,8 +29,10 @@ export async function saveDetail(data) {
             contact,
             attachmentFile,
             contentFile,
-            site
+            site,
+            location
         } = entry;
+
 
         return executeQuery(insertQuery, [
             pathId,
@@ -58,7 +50,8 @@ export async function saveDetail(data) {
             contact,
             attachmentFile,
             contentFile,
-            site
+            site,
+            location
         ]);
     });
 
@@ -70,14 +63,22 @@ export async function saveDetail(data) {
     }
 }
 
-// 중복 체크 함수
-export async function checkExist(pathId) {
-    const selectQuery = 'SELECT COUNT(*) AS count FROM creativekorea WHERE pathId = ?';
+// 중복 체크를 위해 pathId를 받아오자
+export async function getAllPathIds() {
+    const selectQuery = 'SELECT pathId FROM giupmadang';
     try {
-        const result = await executeQuery(selectQuery, [pathId]);
-        return result.count > 0;
+        const result = await executeQuery(selectQuery);
+
+        if (Array.isArray(result) && Array.isArray(result[0])) {
+            const pathIds = result[0].map(row => row.pathId).filter(id => id !== undefined);
+           
+            return pathIds;
+        }  else {
+            console.error('Unexpected result format:', result);
+            return [];
+        }
     } catch (error) {
-        console.error('중복 체크 오류:', error);
+        console.error('pathId 조회 오류:', error);
         throw error; // 예외를 상위 호출자에게 전달
     }
 }
@@ -87,16 +88,23 @@ async function executeQuery(query, params = [], timeout = 45000) {
     let connection;
     try {
         connection = await pool.getConnection();
+        //console.log(`Executing query: ${query}`); // 쿼리 실행 로그
+
+        await connection.beginTransaction();
         await connection.query('SET SESSION MAX_EXECUTION_TIME=?', [timeout]); // 쿼리 타임아웃 설정
         const queryPromise = connection.query(query, params);
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Query timeout')), timeout)
         );
         const result = await Promise.race([queryPromise, timeoutPromise]);
-        console.log(`Successfully executed query: ${result.affectedRows || result.length} rows affected.`);
+        //console.log(`Successfully executed query: ${result.affectedRows || result.length} rows affected.`);
+        
+        await connection.commit();
+
         return result;
     } catch (err) {
         console.error('Error executing query:', err);
+        if (connection) await connection.rollback();
         throw err; // 예외를 상위 호출자에게 전달
     } finally {
         if (connection) connection.release(); // 연결 반환
