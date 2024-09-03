@@ -10,7 +10,7 @@ const chunkSize = 50;
 //Axioserror: socket hang up 에러, 코드: ECONNRESET
 // Axios 인스턴스 설정
 const axiosInstance = axios.create({
-    timeout: 30000, // 30초 타임아웃
+    timeout: 60000, // 60초 타임아웃
     headers: {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Encoding': 'gzip, deflate, br',
