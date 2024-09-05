@@ -145,7 +145,7 @@ async function detailData(detailUrl, pathId, category) {
 
         const targetTable = $('table.tbl-list01').not('#sf_table');
         const firstTdValue = targetTable.find('td').first().text().trim();
-        console.log(firstTdValue);
+        //console.log(firstTdValue);
 
         const data = {
             title,
