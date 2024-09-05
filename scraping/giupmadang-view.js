@@ -9,15 +9,27 @@ const chunkSize = 50;
 
 //Axioserror: socket hang up 에러, 코드: ECONNRESET
 // Axios 인스턴스 설정
+//1 헤더값
 const axiosInstance = axios.create({
     timeout: 60000, // 60초 타임아웃
     headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
         'Cache-Control': 'max-age=0',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/list.do',
+        'Sec-Ch-Ua': '"Not:A-Brand";v="8", "Google Chrome";v="123", "Chromium";v="123"',
+        'Sec-Ch-Ua-Arch': "x86",
+        'Sec-Ch-Ua-Bitness': "64",
+        'Sec-Ch-Ua-Full-Version-List': ' "Not:A-Brand";v="8.0.0.0", "Google Chrome";v="123.0.6312.86", "Chromium";v="123.0.6312.86"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Ch-Ua-Platform-Version': "10.0.0",
+        'Sec-Ch-Ua-Wow64': "?0",
         'DNT': '1',
-        'Upgrade-Insecure-Requests': '1'
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
 });

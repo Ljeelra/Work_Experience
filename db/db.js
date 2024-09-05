@@ -2,59 +2,68 @@ import pool from '../db/mysql.js';
 
 // 데이터 삽입 함수
 export async function saveDetail(data, siteName) {
-    const insertQuery = `INSERT INTO ${siteName} (pathId,category,title,department,implementingAgency, requirement, assistance, 
-    requestStartedOn,requestEndedOn,overview,applyMethod,applySite, contact, attachmentFile, contentFile, site, location) 
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-
+    const insertQuery = `INSERT INTO ${siteName} (
+        pathId, category, year, title, department, implementingAgency, supportScale, requirement, assistance,
+        requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, attachmentFile, contentFile, contentImage, site, location, faq
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    
     const insertPromises = data.map(async (entry, index) => {
-
         if (!entry || typeof entry !== 'object') {
             console.error(`Invalid entry at index ${index}:`, entry);
             return; // 잘못된 데이터는 건너뜁니다.
         }
-
+    
         const {
             pathId,
             category,
+            year,
             title,
             department,
             implementingAgency,
-            requirement = null,
-            assistance = null,
-            requestStartedOn,
-            requestEndedOn,
-            overview,
-            applyMethod,
-            applySite,
-            contact,
-            attachmentFile,
-            contentFile,
-            site,
-            location
-        } = entry;
-
-
-        return executeQuery(insertQuery, [
-            pathId,
-            category,
-            title,
-            department,
-            implementingAgency,
+            supportScale,
             requirement,
             assistance,
             requestStartedOn,
             requestEndedOn,
             overview,
+            applicationProcess,
             applyMethod,
             applySite,
             contact,
             attachmentFile,
             contentFile,
+            contentImage,
             site,
-            location
+            location,
+            faq
+        } = entry;
+    
+        return executeQuery(insertQuery, [
+            pathId || null,
+            category || null,
+            year || null,
+            title || null,
+            department || null,
+            implementingAgency || null,
+            supportScale || null,
+            requirement || null,
+            assistance || null,
+            requestStartedOn || null,
+            requestEndedOn || null,
+            overview || null,
+            applicationProcess || null,
+            applyMethod || null,
+            applySite || null,
+            contact || null,
+            attachmentFile || null,
+            contentFile || null,
+            contentImage || null,
+            site || null,
+            location || null,
+            faq || null
         ]);
     });
-
+    
     try {
         await Promise.all(insertPromises);
         console.log('모든 데이터가 성공적으로 삽입되었습니다.');
