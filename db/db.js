@@ -3,9 +3,10 @@ import pool from '../db/mysql.js';
 // 데이터 삽입 함수
 export async function saveDetail(data, siteName) {
     const insertQuery = `INSERT INTO ${siteName} (
-        pathId, category, year, title, department, implementingAgency, supportScale, requirement, assistance,
-        requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, attachmentFile, contentFile, contentImage, site, location, faq
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        pathId, category, title, year, department, implementingAgency, supportScale, requirement, assistance,
+        requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
+        attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const insertPromises = data.map(async (entry, index) => {
         if (!entry || typeof entry !== 'object') {
@@ -16,8 +17,8 @@ export async function saveDetail(data, siteName) {
         const {
             pathId,
             category,
-            year,
             title,
+            year,
             department,
             implementingAgency,
             supportScale,
@@ -35,14 +36,17 @@ export async function saveDetail(data, siteName) {
             contentImage,
             site,
             location,
-            faq
+            faq,
+            projectType,
+            businessPeriod,
+            contents
         } = entry;
     
         return executeQuery(insertQuery, [
             pathId || null,
             category || null,
-            year || null,
             title || null,
+            year || null,
             department || null,
             implementingAgency || null,
             supportScale || null,
@@ -55,12 +59,15 @@ export async function saveDetail(data, siteName) {
             applyMethod || null,
             applySite || null,
             contact || null,
-            attachmentFile || null,
-            contentFile || null,
-            contentImage || null,
+            attachmentFile ? JSON.stringify(attachmentFile) : null,
+            contentFile ? JSON.stringify(contentFile) : null,
+            contentImage ? JSON.stringify(contentImage) : null,
             site || null,
             location || null,
-            faq || null
+            faq || null,
+            projectType || null,
+            businessPeriod || null,
+            contents || null
         ]);
     });
     
