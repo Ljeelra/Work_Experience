@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds } from '../db/db.js';
+import { saveDetail, getAllPathIds, deleteDuplication } from '../db/db.js';
 
 const baseUrl = 'https://www.smes.go.kr/main/sportsBsnsPolicy';
 const detailBaseUrl = 'https://www.smes.go.kr/main/sportsBsnsPolicy/view';
@@ -294,7 +294,10 @@ async function jungsoventure() {
         const filteredDataResults = detailDataResults.filter(data => data !== null);
         // DB 삽입 함수
         await saveDataInChunks(filteredDataResults, siteName);
-
+        
+        //중복데이터 제거 함수 실행
+        await deleteDuplication();
+        
     } catch (error) {
         console.error('giupmadang 함수에서 오류 발생:', error);
     }
@@ -319,5 +322,6 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
+jungsoventure();
 export default jungsoventure;
 

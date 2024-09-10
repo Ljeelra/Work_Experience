@@ -1,3 +1,4 @@
+import e from 'express';
 import pool from '../db/mysql.js';
 
 // 데이터 삽입 함수
@@ -96,6 +97,18 @@ export async function getAllPathIds(siteName) {
     } catch (error) {
         console.error('pathId 조회 오류:', error);
         throw error; // 예외를 상위 호출자에게 전달
+    }
+}
+
+//중소벤처24와 소상공인24 중복 데이터 삭제
+export async function deleteDuplication(){
+    const deleteQuery = `DELETE j FROM jungsoventure j JOIN sosanggongin24 s ON j.pathId = s.pathId`;
+    try {
+        const result = await executeQuery(deleteQuery);
+        console.log(`성공적으로 ${result.affectedRows} 중복 레코드를 삭제하였습니다.`);
+    } catch (error) {
+        console.error('Error deleting duplicate records:', error);
+        // 예외를 상위 호출자에게 전달하거나 추가적인 에러 처리를 할 수 있습니다.
     }
 }
 
