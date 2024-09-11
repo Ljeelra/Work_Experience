@@ -2,84 +2,73 @@ import pool from '../db/mysql.js';
 
 // 데이터 삽입 함수
 export async function saveDetail(data, siteName) {
-    const insertQuery = `INSERT INTO ${siteName} (
-        pathId, category, title, year, department, implementingAgency, supportScale, requirement, assistance,
-        requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
-        attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
-        agencyCate, age, document, foundingHistory
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    if (data.length === 0) return;
+
+    // 쿼리 템플릿 (컬럼 부분은 고정)
+    const insertQueryTemplate = `
+        INSERT INTO ${siteName} (
+            pathId, category, title, year, department, implementingAgency, supportScale, requirement, assistance,
+            requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
+            attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
+            agencyCate, age, document, foundingHistory
+        ) VALUES `;
+
+        const insertPromises = data.map(async (entry, index) => {
+            if (!entry || typeof entry !== 'object') {
+                console.error(`Invalid entry at index ${index}:`, entry);
+                return; // 잘못된 데이터는 건너뜁니다.
+            }
+        
+            // 값 배열 생성
+            const values = [
+                entry.pathId || null,
+                entry.category || null,
+                entry.title || null,
+                entry.year || null,
+                entry.department || null,
+                entry.implementingAgency || null,
+                entry.supportScale || null,
+                entry.requirement || null,
+                entry.assistance || null,
+                entry.requestStartedOn || null,
+                entry.requestEndedOn || null,
+                entry.overview || null,
+                entry.applicationProcess || null,
+                entry.applyMethod || null,
+                entry.applySite || null,
+                entry.contact || null,
+                entry.attachmentFile ? JSON.stringify(entry.attachmentFile) : null,
+                entry.contentFile ? JSON.stringify(entry.contentFile) : null,
+                entry.contentImage ? JSON.stringify(entry.contentImage) : null,
+                entry.site || null,
+                entry.location || null,
+                entry.faq || null,
+                entry.projectType || null,
+                entry.businessPeriod || null,
+                entry.contents || null,
+                entry.agencyCate || null,
+                entry.age || null,
+                entry.document || null,
+                entry.foundingHistory || null
+            ];
     
-    const insertPromises = data.map(async (entry, index) => {
-        if (!entry || typeof entry !== 'object') {
-            console.error(`Invalid entry at index ${index}:`, entry);
-            return; // 잘못된 데이터는 건너뜁니다.
-        }
+            // ? 플레이스홀더를 데이터 항목 수에 맞게 동적으로 생성
+            const placeholders = Array(values.length).fill('?').join(', ');
     
-        const {
-            pathId,
-            category,
-            title,
-            year,
-            department,
-            implementingAgency,
-            supportScale,
-            requirement,
-            assistance,
-            requestStartedOn,
-            requestEndedOn,
-            overview,
-            applicationProcess,
-            applyMethod,
-            applySite,
-            contact,
-            attachmentFile,
-            contentFile,
-            contentImage,
-            site,
-            location,
-            faq,
-            projectType,
-            businessPeriod,
-            contents,
-            agencyCate,
-            age,
-            document,
-            foundingHistory
-        } = entry;
+            // 최종 쿼리 생성
+            const insertQuery = insertQueryTemplate + `(${placeholders})`;
+            
+            //console.log('쿼리문 확인:', insertQuery); // 쿼리 확인
     
-        return executeQuery(insertQuery, [
-            pathId || null,
-            category || null,
-            title || null,
-            year || null,
-            department || null,
-            implementingAgency || null,
-            supportScale || null,
-            requirement || null,
-            assistance || null,
-            requestStartedOn || null,
-            requestEndedOn || null,
-            overview || null,
-            applicationProcess || null,
-            applyMethod || null,
-            applySite || null,
-            contact || null,
-            attachmentFile ? JSON.stringify(attachmentFile) : null,
-            contentFile ? JSON.stringify(contentFile) : null,
-            contentImage ? JSON.stringify(contentImage) : null,
-            site || null,
-            location || null,
-            faq || null,
-            projectType || null,
-            businessPeriod || null,
-            contents || null,
-            agencyCate || null,
-            age || null,
-            document || null,
-            foundingHistory || null
-        ]);
-    });
+            //console.log('Values to Insert:', values); // 값 확인
     
+            try {
+                await executeQuery(insertQuery, values);
+            } catch (error) {
+                console.error(`Error inserting entry at index ${index}:`, error);
+            }
+        });
+        
     try {
         await Promise.all(insertPromises);
         console.log('모든 데이터가 성공적으로 삽입되었습니다.');
