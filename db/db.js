@@ -1,4 +1,3 @@
-import e from 'express';
 import pool from '../db/mysql.js';
 
 // 데이터 삽입 함수
@@ -6,8 +5,9 @@ export async function saveDetail(data, siteName) {
     const insertQuery = `INSERT INTO ${siteName} (
         pathId, category, title, year, department, implementingAgency, supportScale, requirement, assistance,
         requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
-        attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
+        agencyCate, age, document, foundingHistory
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const insertPromises = data.map(async (entry, index) => {
         if (!entry || typeof entry !== 'object') {
@@ -40,7 +40,11 @@ export async function saveDetail(data, siteName) {
             faq,
             projectType,
             businessPeriod,
-            contents
+            contents,
+            agencyCate,
+            age,
+            document,
+            foundingHistory
         } = entry;
     
         return executeQuery(insertQuery, [
@@ -68,7 +72,11 @@ export async function saveDetail(data, siteName) {
             faq || null,
             projectType || null,
             businessPeriod || null,
-            contents || null
+            contents || null,
+            agencyCate || null,
+            age || null,
+            document || null,
+            foundingHistory || null
         ]);
     });
     
@@ -77,6 +85,19 @@ export async function saveDetail(data, siteName) {
         console.log('모든 데이터가 성공적으로 삽입되었습니다.');
     } catch (error) {
         console.error('데이터 삽입 중 오류 발생:', error);
+    }
+}
+
+// 풀 상태 확인 함수
+async function isPoolClosed() {
+    try {
+        await pool.query('SELECT 1');
+        return false;  // 풀은 열려 있음
+    } catch (err) {
+        if (err.message.includes('Pool is closed')) {
+            return true;  // 풀은 닫혀 있음
+        }
+        throw err;  // 다른 에러는 그대로 던짐
     }
 }
 
