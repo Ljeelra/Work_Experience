@@ -7,10 +7,10 @@ export async function saveDetail(data, siteName) {
     // 쿼리 템플릿 (컬럼 부분은 고정)
     const insertQueryTemplate = `
         INSERT INTO ${siteName} (
-            pathId, category, title, year, department, implementingAgency, supportScale, requirement, assistance,
-            requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
+            pathId, category, title, year, department, implementingAgency, manager, supportScale, requirement, assistance,
+            announcementDate, requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
             attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
-            agencyCate, age, document, foundingHistory
+            agencyCate, age, document, foundingHistory, eventoverview, recruitoverview, caution, etc
         ) VALUES `;
 
         const insertPromises = data.map(async (entry, index) => {
@@ -27,9 +27,11 @@ export async function saveDetail(data, siteName) {
                 entry.year || null,
                 entry.department || null,
                 entry.implementingAgency || null,
+                entry.manager || null,
                 entry.supportScale || null,
                 entry.requirement || null,
                 entry.assistance || null,
+                entry.announcementDate || null,
                 entry.requestStartedOn || null,
                 entry.requestEndedOn || null,
                 entry.overview || null,
@@ -49,7 +51,11 @@ export async function saveDetail(data, siteName) {
                 entry.agencyCate || null,
                 entry.age || null,
                 entry.document || null,
-                entry.foundingHistory || null
+                entry.foundingHistory || null,
+                entry.eventoverview || null,
+                entry.recruitoverview || null,
+                entry.caution || null,
+                entry.etc || null
             ];
     
             // ? 플레이스홀더를 데이터 항목 수에 맞게 동적으로 생성
