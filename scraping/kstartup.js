@@ -72,7 +72,7 @@ const axiosInstance = axios.create({
 });
 
 
-//pathId 필터링
+//pathId 필터링-단일배열
 async function filterPathId(scrapedData, siteName) {
     try {
         const existingPathIds = await getAllPathIds(siteName);

@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
 
@@ -6,6 +6,8 @@ const chunkSize = 50;
 const row = 15;
 const baseUrl ='https://www.kocca.kr/kocca/pims/list.do?menuNo=204104';
 const detailBaseUrl = `https://www.kocca.kr/kocca/pims/view.do?&menuNo=204104&intcNo=`;
+const fileBaseUrl = `https://pms.kocca.kr/pblanc/pblancPopupViewPage.do?pblancId=`;
+
 
 const axiosInstance = axios.create({
     timeout: 60000, // 60초 타임아웃
@@ -127,7 +129,7 @@ async function scrapeDetailPage(pathId, siteName){
             contact: null,//문의처
             caution: null,//유의사항
             etc: null,//기타사항
-            attachmentFile: null,//첨부파일
+            attachmentFile: [],//첨부파일
             contents: null
         }
 
@@ -215,10 +217,96 @@ async function scrapeDetailPage(pathId, siteName){
             }
         });
 
+        let fileList =[];
+        let filelinkId='';
+        //첨부파일 처리 로직
+        const file = $('div.board_view01'). find('div.btn_area.area_center').eq(0);
+        const fileLink = file.find('a.btn_link').attr('href');
+        const regex = /javascript:openNoticeFileList2\('([^']+)'\)/;
+        const fileLinkMatch = fileLink.match(regex);
+        if (fileLinkMatch) {
+            filelinkId = fileLinkMatch[1].trim();
+        } else {
+            console.log('값을 추출할 수 없습니다.');
+        }
+        //console.log('첨부파일 링크아이디: '+fileId);
+        const fileUrl = `${fileBaseUrl}${filelinkId}`;
+        fileList = await fileDownLink(fileUrl);
+        //console.log(fileList);
+        const policyName = '정책자료';
+        const policyDownload = file.find('a.btn_download').attr('href');
+
+        fileList.push({
+            fileNm: policyName,
+            fileUrl: policyDownload
+        });
+
+        // data.attachmentFile에 추가
+        data.attachmentFile = fileList.map(file => ({
+            fileNm: file.fileNm,
+            fileUrl: file.fileUrl
+        }));
+
+
         //console.log(data);
         return data;
     } catch(error){
         console.log('',error);
+    }
+}
+
+async function fileDownLink(fileUrl) {
+    const fileDownurl = 'https://pms.kocca.kr/file/innorix/download.do?dwnldUk=';
+    try {
+        //GET요청으로 fileId 가져오기
+        const htmlResponse = await axios.get(fileUrl);
+        const $ = cheerio.load(htmlResponse.data);
+
+        const fileId = $('input#attfileId').attr('value');
+        if (!fileId) {
+            throw new Error('fileId를 HTML에서 추출할 수 없습니다.');
+        }
+        //console.log('추출된 fileId:', fileId);
+
+        // POST 요청으로 파일 리스트 가져오기
+        const postUrl = 'https://pms.kocca.kr/file/innorix/fileList.do';
+        const headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Referer': `https://pms.kocca.kr/pblanc/pblancPopupViewPage.do?pblancId=${fileId}`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+
+        const payload = new URLSearchParams({
+            fileId: fileId,
+            attachTypeId: ''
+        }).toString();
+
+        const postResponse = await axios.post(postUrl, payload, { headers: headers });
+
+
+        if (postResponse.data && postResponse.data.result === 'ok') {
+            const fileList = postResponse.data.fileList;
+            //console.log('fileList:', JSON.stringify(fileList, null, 2));
+            
+            // fileList.forEach(file => {
+            //     console.log(`파일명: ${file.fileNm}`);
+            //     console.log(`다운로드 유니크: ${file.dwnldUk}`);
+            // });
+
+            return fileList.map(file => ({
+                fileNm: file.fileNm,
+                fileUrl: `${fileDownurl}${file.dwnldUk}`
+            }));
+        } else {
+            throw new Error('예상치 못한 응답 형식입니다.');
+        }
+    } catch (error) {
+        console.error('fileDownLink() 에러:', error);
     }
 }
 
