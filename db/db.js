@@ -10,7 +10,7 @@ export async function saveDetail(data, siteName) {
             pathId, category, title, year, department, implementingAgency, manager, supportScale, requirement, assistance,
             announcementDate, requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
             attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
-            agencyCate, age, document, foundingHistory, eventoverview, recruitoverview, caution, etc
+            agencyCate, age, document, foundingHistory, eventoverview, recruitoverview, caution, etc, businessPerpose, supportTarget
         ) VALUES `;
 
         const insertPromises = data.map(async (entry, index) => {
@@ -38,7 +38,7 @@ export async function saveDetail(data, siteName) {
                 entry.applicationProcess || null,
                 entry.applyMethod || null,
                 entry.applySite || null,
-                entry.contact || null,
+                entry.contact ? JSON.stringify(entry.attachmentFile) : null,
                 entry.attachmentFile ? JSON.stringify(entry.attachmentFile) : null,
                 entry.contentFile ? JSON.stringify(entry.contentFile) : null,
                 entry.contentImage ? JSON.stringify(entry.contentImage) : null,
@@ -55,7 +55,9 @@ export async function saveDetail(data, siteName) {
                 entry.eventoverview || null,
                 entry.recruitoverview || null,
                 entry.caution || null,
-                entry.etc || null
+                entry.etc || null,
+                entry.businessPerpose || null,
+                entry.supportTarget || null
             ];
     
             // ? 플레이스홀더를 데이터 항목 수에 맞게 동적으로 생성
