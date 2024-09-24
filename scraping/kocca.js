@@ -314,7 +314,7 @@ async function kocca(){
     const siteName = 'kocca';
     try{
         //공고 목록에서 페이지 별로 pathId 추출하는 함수
-        let allPathIds = {};
+        //let allPathIds = {};
         const pathIds = await getPagePathId();
         console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
     
