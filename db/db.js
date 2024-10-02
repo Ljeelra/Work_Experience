@@ -25,7 +25,7 @@ export async function saveDetail(data, siteName) {
                 entry.year || null,
                 entry.department || null,
                 entry.implementingAgency || null,
-                entry.manager || null,
+                entry.manager ? JSON.stringify(entry.manager) : null,
                 entry.supportScale || null,
                 entry.requirement || null,
                 entry.assistance || null,

@@ -184,6 +184,9 @@ async function scrapeDetailPage(pathId, siteName){
             const imgTags = board.find('img');
 
             if (imgTags.length > 0) {
+                const imageDir = path.join(__dirname, 'images', 'gbimages'); // 'images/gbimages' 폴더 경로 설정
+                fs.ensureDirSync(imageDir); // 이미지 디렉토리 생성
+
                 imgTags.each((index, element) => {
                     const imgNm = $(element).attr('data-filename') || `image_${index}`;
                     const imgSrc = $(element).attr('src');
@@ -199,9 +202,8 @@ async function scrapeDetailPage(pathId, siteName){
 
                                 const formattedDate = `${year}-${month}-${day}`; 
                                 const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathId}_${index}_${formattedDate}.png` // 이미지 이름 설정
-                                const filePath = path.join(__dirname, 'gbimages', fileName); // 이미지 파일 경로
+                                const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
 
-                                fs.ensureDirSync(path.join(__dirname, 'gbimages')); // images 폴더 생성
                                 if (!fs.existsSync(filePath)) {
                                     fs.writeFileSync(filePath, buffer); // 디코딩된 이미지 저장
                                     data.contentImage.push({ imgNm, img: filePath }); // 파일 경로 저장
