@@ -12,8 +12,6 @@ const __dirname = dirname(__filename);
 
 const chunkSize = 50;
 const baseUrl = 'https://www.gjtp.or.kr/home/business.cs';
-const detailBaseUrl = 'https://www.btp.or.kr/kor/CMS/Board/Board.do?mCode=MN013&mode=view&mgr_seq=16&board_seq=';
-const row = 10;
 const axiosInstance = axios.create({
     timeout: 60000, // 60초 타임아웃
     headers: {
