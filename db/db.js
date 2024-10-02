@@ -4,7 +4,6 @@ import pool from '../db/mysql.js';
 export async function saveDetail(data, siteName) {
     if (data.length === 0) return;
 
-    // 쿼리 템플릿 (컬럼 부분은 고정)
     const insertQueryTemplate = `
         INSERT INTO ${siteName} (
             pathId, category, title, year, department, implementingAgency, manager, supportScale, requirement, assistance,
@@ -12,14 +11,13 @@ export async function saveDetail(data, siteName) {
             attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
             agencyCate, age, document, foundingHistory, eventoverview, recruitoverview, caution, etc, businessPerpose, supportTarget
         ) VALUES `;
-
+    
         const insertPromises = data.map(async (entry, index) => {
             if (!entry || typeof entry !== 'object') {
                 console.error(`Invalid entry at index ${index}:`, entry);
                 return; // 잘못된 데이터는 건너뜁니다.
             }
         
-            // 값 배열 생성
             const values = [
                 entry.pathId || null,
                 entry.category || null,
