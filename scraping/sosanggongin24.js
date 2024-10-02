@@ -13,6 +13,7 @@ const axiosInstance = axios.create({
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        
         'Cache-Control': 'max-age=0',
         'Content-Type': 'application/x-www-form-urlencoded',
         'Referer': 'https://www.sbiz24.kr/#/pbanc',
