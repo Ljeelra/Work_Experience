@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import iconv from 'iconv-lite';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,18 +11,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
-const listUrl = 'https://www.gbtp.or.kr/user/board.do';
-const detailBaseUrl = 'https://www.gbtp.or.kr/user/boardDetail.do';
+const listUrl = 'https://www.jbtp.or.kr/board/list.jbtp?boardId=BBS_0000006&menuCd=DOM_000000102001000000';
+const detailBaseUrl = 'https://www.jbtp.or.kr/board/view.jbtp?menuCd=DOM_000000102001000000&boardId=BBS_0000006&dataSid=';
+const MAX_RETRIES = 3;
 const row = 10;
 const axiosInstance = axios.create({
     timeout: 60000, // 60초 타임아웃
+    responseType: 'arraybuffer',
     headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.3',
         'Cache-Control': 'max-age=0',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://www.gbtp.or.kr/user/board.do',
+        'Referer': 'https://www.itp.or.kr/intro.asp?tmid=13',
         'Sec-Ch-Ua': '"Not:A-Brand";v="8", "Google Chrome";v="123", "Chromium";v="123"',
         'Sec-Ch-Ua-Arch': "x86",
         'Sec-Ch-Ua-Bitness': "64",
@@ -36,6 +39,76 @@ const axiosInstance = axios.create({
     },
     family: 4,
 });
+
+async function getTotalPages(gubun) {
+    try {
+        console.log(`totalPage 추출을 시작합니다`);
+        const response = await axiosInstance.get(listUrl, {params: {gubun: gubun, pageNo: 1 }});
+        if (!response.data) return 0;
+
+        const decodedHtml = iconv.decode(Buffer.from(response.data), 'UTF-8')
+        const $ = cheerio.load(decodedHtml);
+        const pagenation = $('p.bbs_page');
+        let totalPages = '';
+        // 페이지가 한 페이지인지 여러 페이지인지 확인
+        if (pagenation.find('a.on').length === 1 && pagenation.find('a').length === 5) {
+            totalPages = 1;
+            return totalPages;
+        } else {
+            // 여러 페이지일 경우
+            const pageHref = pagenation.find('a').last().attr('href');
+            if (pageHref) {
+                const pageMatch = pageHref.match(/pageNo=(\d+)/);
+                if (pageMatch) {
+                    totalPages = parseInt(pageMatch[1], 10);
+                    //console.log(totalPages);
+                }
+            }
+            return totalPages || 0; // 페이지 수가 없을 경우 0 반환
+        }
+    } catch (error) {
+        console.error('getTotalPages()에서 에러가 발생:', error);
+        return 0;
+    }
+}
+
+async function getPathIds(gubun) {
+    try {
+        const totalPages = await getTotalPages(gubun);
+        console.log(totalPages);
+        
+        const pathIdsPromises = Array.from({ length: totalPages }, (_, i) => (async (page) => {
+            try {
+                const response = await axiosInstance.get(listUrl, {params:{ gubun : gubun, pageNo: page }});
+                
+                if (!response.data) return [];
+                const decodedHtml = iconv.decode(Buffer.from(response.data), 'UTF-8')
+                const $ = cheerio.load(decodedHtml);
+
+                const pathIds = [];
+                $('table.bbs_list_t tbody tr').each((i, element) => {
+                    const pathIdHref = $(element).find('td.txt_left a').attr('href');
+                    //console.log(`상태 ${gubun} :`,pathIdHref);
+                    const pathIdMatch = pathIdHref.match(/dataSid=(\d+)/);
+                    if (pathIdMatch) {
+                        pathIds.push(pathIdMatch[1]);
+                    }
+                });
+                return pathIds;
+            } catch (error) {
+                console.error(`getPathIds(${page})에서 에러가 발생:`, error);
+                return [];
+            }
+        })(i + 1));
+
+        const pathIdsArrays = await Promise.all(pathIdsPromises);
+        //console.log(pathIdsArrays);
+        return pathIdsArrays.flat();
+    } catch (error) {
+        console.error(`getPathIds()에서 에러가 발생:`, error);
+        return [];
+    }
+}
 
 async function filterPathId(scrapedData, siteName) {
     try {
@@ -53,157 +126,74 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
-
-async function getPathid() {
-    const pathIds = [];
-    let pageIndex = 1;
-
-    while (true) {
-        try {
-            console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
-            
-            const response = await axiosInstance.post(listUrl, {
-                pageIndex: pageIndex,
-                recordCountPerPage : row,
-                bbsId: 'BBSMSTR_000000000021',
-                searchTerm: 'ing'
-              } );
-            const $ = cheerio.load(response.data);
-            //console.log(response.data);
-            // 실제 pathId 추출 로직을 여기에 추가
-            let dataFound = false;
-            $('table.tablelist tbody tr').each((index, element) => {
-                const href = $(element).find('td.title a').attr('onclick');
-                if (href) {
-                    const regex = /javascript:fn_detail\('([^']+)',/;
-                    const match = href.match(regex);
-                    if (match) {
-                        const pathId = match[1];
-                        //console.log(pathId);
-                        pathIds.push(pathId);
-                        dataFound = true;
-                    }
-                }
-            });
-           
-            if (!dataFound) {
-                console.log(`페이지 ${pageIndex}에 pathId가 없습니다.`);
-                break;
-            }
-
-            // 다음 페이지로 이동
-            pageIndex++;
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                console.log(`페이지 ${pageIndex}가 존재하지 않습니다. 추출 종료.`);
-                break;
-            }
-            console.error(`페이지 ${pageIndex} 추출 중 오류 발생:`, error.message);
-            break;
-        }
-    }   
-    //console.log('sprtBizCdList 체크:',sprtBizCdList);
-    return pathIds;
-}
-
-async function scrapeDetailPage(pathId, siteName){
+async function scrapeDetailPage(pathIds, siteName){
     const data = {
-        pathId: pathId,
+        pathId: pathIds,
         site: siteName,
         title: null,
         announcementDate: null,
-        manager: null,
-        department:null,
-        requestStartedOn: null,
         requestEndedOn: null,
         contents: null,
         contentImage: [],
         attachmentFile: []
     };
+    let retries = 0;
+    while (retries < MAX_RETRIES) {
         try{
-
+            const detailUrl = `${detailBaseUrl}${pathIds}`;
             //console.log(detailUrl);
-            const detailHtml = await axiosInstance.post(detailBaseUrl, {bbsId: 'BBSMSTR_000000000021', nttNo:pathId});
+            const detailHtml = await axiosInstance.get(detailUrl);
             const $ = cheerio.load(detailHtml.data);
 
-            $('table.tablelist tbody tr').each((index, element) => {
-                const thElements = $(element).find('th');
-                const tdElements = $(element).find('td');
-              
-                thElements.each((i, th) => {
-                  const thText = $(th).text().trim();
-                  const td = $(tdElements[i]);
-                  const tdText = td.text().trim();
-              
-                  switch (thText) {
-                    case '공고명':
-                      data.title = tdText;
-                      break;
-                    case '접수기간/상태':
-                        const dateTerm = tdText.replace(/[\n\t]/g, '').replace(/\s+/g, ' ').replace(/[()]/g, '').trim();
-                        const applyDate = dateTerm.split('~');
-                        data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-                        data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
-                        break;
-                    case '담당자/연락처':
-                        data.manager = tdText;
-                        break;
-                    case '담당부서':
-                        data.department = tdText;
-                        break;
-                    case '공고일':
-                      data.announcementDate = tdText;
-                        break;
-                    default:
-                        break;
-                  }
-                });
-              });
+            data.title = $('div.bbs_vtop h4').text().trim();
+            if (!data.title) {
+                console.warn(`제목을 찾을 수 없습니다. pathId: ${data.pathId}`);
+            }
+            data.announcementDate = $('ul.txt_list').find('span').eq(1).text().trim();
+            data.requestEndedOn = $('ul.txt_list').find('span').eq(4).text().replace(/ *-D-\d+/g, '').trim();
+            if(!data.requestEndedOn){
+                data.requestEndedOn = '상시';
+            }
 
             //첨부파일
-            const file = $('tr');
-            file.find('a.view_file_download').each((index, element) => {
-                const fileNm = $(element).text().trim();
-                const href = $(element).attr('onclick');
-                //if(data.pathId ==='8016'|| data.pathId ==='7977'){console.log(`${data.pathId} href: `, href);}
-                const match = href.match(/javascript:fn_egov_downFile\('([^']+)','([^']+)'\)/);
-                if (match) {
-                    const fileid = match[1];
-                    const fileSn = match[2];
-                    const fileUrl = `https://www.gbtp.or.kr/cmm/fms/FileDown.do?atchFileId=${fileid}&fileSn=${fileSn}`; 
-                    
+            const file = $('div.bbs_filedown');
+            file.find('dd').each((index, element) => {
+                $(element).find('span').remove();
+                const fileNm = $(element).text().trim(); 
+            
+                const downloadLink = $(element).find('a.sbtn_down').attr('href');
+                if (downloadLink) {
+                    const fileLink = downloadLink.startsWith('https://') ? downloadLink : downloadLink.startsWith('/') ? `https://www.jbtp.or.kr${downloadLink}` : null;
                     data.attachmentFile.push({
                         fileNm: fileNm,
-                        fileLink: fileUrl
+                        fileLink: fileLink
                     });
                 }
             });
 
             //본문 글 or 이미지
-            const board = $('td.viewcon');
+            const board = $('div.wrap__contents');
             const imgTags = board.find('img');
-
             if (imgTags.length > 0) {
-                
                 imgTags.each((index, element) => {
-                    const imgNm = $(element).attr('data-filename') || `image_${index}`;
+                    const imgNm = $(element).attr('alt') || `image_${data.title}_${index}`;
                     const imgSrc = $(element).attr('src');
                     if (imgSrc) {
                         const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
                         if (base64Match) {
-                            const imageDir = path.join(__dirname, 'images', 'gbimages'); // 'images/gbimages' 폴더 경로 설정
-                            fs.ensureDirSync(imageDir); // 이미지 디렉토리 생성
+                            const imageDir = path.join(__dirname, 'images', 'jbimages'); // 'images/gwimages' 폴더 경로 설정
+                            fs.ensureDirSync(imageDir);
                             try {
                                 const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
                                 const now = new Date();
                                 const year = now.getFullYear(); 
                                 const month = String(now.getMonth() + 1).padStart(2, '0'); 
                                 const day = String(now.getDate()).padStart(2, '0'); 
-
+                                
                                 const formattedDate = `${year}-${month}-${day}`; 
                                 const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathId}_${index}_${formattedDate}.png` // 이미지 이름 설정
                                 const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
-
+    
                                 if (!fs.existsSync(filePath)) {
                                     fs.writeFileSync(filePath, buffer); // 디코딩된 이미지 저장
                                     data.contentImage.push({ imgNm, img: filePath }); // 파일 경로 저장
@@ -214,43 +204,56 @@ async function scrapeDetailPage(pathId, siteName){
                                 console.error(`Error saving image for ${imgNm}:`, error);
                             }
                         } else if (imgSrc.startsWith('data:image/')) {
-                            console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
+                            console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathIds}`);
                         } else {
                             // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
-                            const fullImgSrc = imgSrc.startsWith('/') ? `http://www.gbtp.or.kr${imgSrc}` : imgSrc;
+                            const fullImgSrc = imgSrc.startsWith('/') ? `http://www.jbtp.or.kr${imgSrc}` : imgSrc;
                             data.contentImage.push({ imgNm, img: fullImgSrc });
                         }
                     } else {
-                        console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathIds}`);
+                        console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathId}`);
                     }
                 });
             }
-
+            
+            const txtbox = $('div.bbs_con');
             const txtArray =[];
-            board.find('p').each((index, element) => {
+            txtbox.find('p').each((index, element) => {
                 const ptext = $(element).text().trim();
                 if (ptext) {
                     txtArray.push(ptext);
                 }
             });
+    
             if (txtArray.length > 0) {
                 data.contents = txtArray.join(' ');
             }
             
-            console.log(data);
+            //console.log(data);
             return data;
         } catch(error){
-            //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
-            
+            console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
+            retries++;
+            if (retries < MAX_RETRIES) {
+                console.log(`재시도 중... (${retries}/${MAX_RETRIES})`);
+                await new Promise(res => setTimeout(res, 2000)); // 2초 대기
+            } else {
+                console.error(`최대 재시도 횟수를 초과했습니다. pathId: ${data.pathId}`);
+                return null;
+            }
         }
-
+    }
 }
 
-async function gbtp(){
-    const siteName = 'gbtp';
+async function jbtp(){
+    const siteName = 'jbtp';
     try{
-        const pathIds = await getPathid();
+        let pathIds=[];
+        //pathId 추출
+        const [ongoingPathIds, openPathIds] = await Promise.all([getPathIds(2), getPathIds(3)]);
+        
+        const uniquePathIds = [...new Set([...ongoingPathIds, ...openPathIds])];
+        pathIds = uniquePathIds;
         console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
 
         const filterPathIds = await filterPathId(pathIds,siteName);
@@ -268,11 +271,11 @@ async function gbtp(){
         const detailDataResults = await Promise.all(detailDataPromises);
         const filteredDataResults = detailDataResults.filter(data => data !== null);
 
-        //DB 저장 함수 호출
+        // //DB 저장 함수 호출
         await saveDataInChunks(filteredDataResults, siteName);
 
     } catch(error){
-        console.log('gbtp()에서 에러가 발생 : ',error);
+        console.log('itp()에서 에러가 발생 : ',error);
     }
 }
 
@@ -294,5 +297,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gbtp();
-export default gbtp;
+jbtp();
+export default jbtp;

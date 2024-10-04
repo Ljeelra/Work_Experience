@@ -144,7 +144,6 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
             const fileNm = $(file).text().trim();
             const fileHref = $(file).attr('href');
             if(fileHref){
-                 // 삼항 연산자를 사용하여 fileLink 결정
                 const fileLink = fileHref.startsWith('https://') ? fileHref : fileHref.startsWith('/') ? `https://www.cbtp.or.kr${fileHref}` : null;
                 data.attachmentFile.push({
                     fileNm: fileNm,
