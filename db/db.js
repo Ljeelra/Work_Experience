@@ -36,7 +36,7 @@ export async function saveDetail(data, siteName) {
                 entry.applicationProcess || null,
                 entry.applyMethod || null,
                 entry.applySite || null,
-                entry.contact ? JSON.stringify(entry.attachmentFile) : null,
+                entry.contact ? JSON.stringify(entry.contact) : null,
                 entry.attachmentFile ? JSON.stringify(entry.attachmentFile) : null,
                 entry.contentFile ? JSON.stringify(entry.contentFile) : null,
                 entry.contentImage ? JSON.stringify(entry.contentImage) : null,
