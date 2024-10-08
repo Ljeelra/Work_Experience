@@ -1,7 +1,5 @@
-//process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
 import * as cheerio from "cheerio";
-import iconv from 'iconv-lite';
 import { saveDetail, getAllPathIds } from '../db/db.js';
 import fs from 'fs-extra';
 import path from 'path';
@@ -12,20 +10,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
-const baseUrl = 'https://www.cbtp.or.kr';
-const listUrl = 'https://www.cbtp.or.kr/index.php?control=bbs&board_id=saup_notice&lm_uid=387';
-const detailBaseUrl = 'https://www.gwtp.or.kr/gwtp/bbsNew_view.php?bbs_data=';
+const baseUrl = 'https://sjtp.or.kr/bbs/board.php?bo_table=business01&page=';
+const detailBaseUrl = 'https://sjtp.or.kr/bbs/board.php?bo_table=business01&wr_id=';
 const row = 10;
 const axiosInstance = axios.create({
-    timeout: 60000, // 60초 타임아웃,
-    responseType: 'arraybuffer',
+    timeout: 60000, // 60초 타임아웃
     headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.3',
         'Cache-Control': 'max-age=0',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://www.gwtp.or.kr/gwtp/bbsNew_list.php?code=sub01b&keyvalue=sub01',
+        'Referer': 'https://sjtp.or.kr/bbs/board.php?bo_table=business01',
         'Sec-Ch-Ua': '"Not:A-Brand";v="8", "Google Chrome";v="123", "Chromium";v="123"',
         'Sec-Ch-Ua-Arch': "x86",
         'Sec-Ch-Ua-Bitness': "64",
@@ -41,41 +37,49 @@ const axiosInstance = axios.create({
     family: 4,
 });
 
-async function getPathIds() {
-    try{
-        const getHtml =  await axiosInstance.get(listUrl);
-        const decodedHtml = iconv.decode(Buffer.from(getHtml.data), 'EUC-KR');
-        const $ = cheerio.load(decodedHtml);
-        const pathIds = [];
-        $('tbody.tb tr.notice').each((index, element) => {
-            const altText = $(element).find('td.gray img').attr('alt'); // 첫 번째 td의 img alt 텍스트
-            
+async function getPathIds(){
+    const pathIds = [];
+    let page = 1;
+    while (true) {
+        try{
+            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            const listUrl = `${baseUrl}${page}`;
+            const response = await axiosInstance.get(listUrl);
+            const $ = cheerio.load(response.data);
 
-            // 첫 번째 td의 img alt가 '공지'인지 확인
-            if (altText === '공지') {
-                const secondAltText = $(element).find('td:nth-child(2) img').attr('alt'); // 두 번째 td의 img alt 텍스트
-                
-                // 두 번째 td의 img alt가 '진행'인지 확인
-                if (secondAltText === '진행') {
-                    const href = $(element).find('td.subject a').attr('href'); // a 태그의 href 속성
-                    if (href) {
-                        const hrefMatch = href.match(/no=([^&]*)/);
-                        if (hrefMatch) {
-                            const pathId = hrefMatch[1];
-                            pathIds.push({ href: href, pathId: pathId });
-                        }
-                    }
-                }
-            }
-        });
-
-        //console.log(pathIds);
-        return pathIds;
-    }catch(error){
-        console.error('Error fetching total pages:', error);
-        return 1;
-    }
+            let stopExtraction = false;
     
+            $('div.tbl_head01.tbl_wrap table tbody tr').each((index, element) => {
+                const status = $(element).find('td.td_datetime.bo_status span.complete');
+                if (status.length > 0) {
+                    stopExtraction = true;
+                    return false; // each 루프 중단
+                }
+
+                const href = $(element).find('td.td_subject a').attr('href'); // href 속성 값을 가져옵니다.
+                const hrefMatch = href.match(/wr_id=(\d+)&page/); // 정규 표현식으로 seq 값을 추출합니다.
+
+                if (hrefMatch) {
+                    const pathId = hrefMatch[1]; // 추출된 seq 값을 가져옵니다.
+                    pathIds.push(pathId);
+                    //console.log(pathId); // seq 값을 출력합니다.
+                }
+
+            });       
+            
+            if (stopExtraction) {
+                console.log('pathId 추출이 종료되었습니다.');
+                break; // while 루프 중단
+            }
+    
+            //console.log(pathIds);
+            page++;
+        } catch(error){
+            console.log('gtp.getListPathIds() 에러 발생: ',error);
+        }
+
+    }
+    return pathIds;
 }
 
 async function filterPathId(scrapedData, siteName) {
@@ -94,40 +98,64 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
-async function scrapeDetailPage(detailUrl, pathId, siteName){
-    const data = {
-        pathId: pathId,
+async function scrapeDetailPage(pathId, siteName){
+    const data={
+        title:null,
         site: siteName,
-        title: null,
+        pathId: pathId,
         category: null,
+        announcementDate: null,
+        requestStartedOn: null,
+        requestEndedOn: null,
         implementingAgency: null,
         department: null,
         manager: [],
-        requestStartedOn: null,
-        requestEndedOn: null,
+        attachmentFile: [],
         contents: null,
-        contentImage: [],
-        attachmentFile: []
+        contentImage: []
     };
     try{
-
-        //console.log(detailUrl);
+        const detailUrl = `${detailBaseUrl}${pathId}`
         const detailHtml = await axiosInstance.get(detailUrl);
-        const decodedHtml = iconv.decode(Buffer.from(detailHtml.data), 'EUC-KR');
-        const $ = cheerio.load(decodedHtml);
-        
-        const tableBox = $('table.bbs_view tbody.tb.read tr');
-        data.title= tableBox.eq(0).find('td.subject').text().trim();   
-        data.category = tableBox.eq(1).find('td').text().trim();
+        const $ = cheerio.load(detailHtml.data);
 
-        const dateTerm = tableBox.eq(2).find('td').text().trim();
-        const applyDate = dateTerm.split('~');
-        data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-        data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
-        data.implementingAgency = tableBox.eq(3).find('td').eq(0).text().trim();
-        data.department = tableBox.eq(3).find('td').eq(1).text().trim();
-        
-        const rows = tableBox.slice(4, 6); // eq(4)와 eq(5) 선택
+        data.title = $('#bo_v_title').find('span.bo_v_tit').text().trim();
+        // console.log(data.title);
+        data.announcementDate = $('#bo_v_info').find('strong.if_date').text().trim();
+
+        const headTable = $('div.recru_div table tbody tr');
+        headTable.each((index, element) => {
+            const thElements = $(element).find('th');
+            const tdElements = $(element).find('td');
+          
+            thElements.each((i, th) => {
+              const thText = $(th).text().trim();
+              const td = $(tdElements[i]);
+              const tdText = td.text().trim();
+          
+              switch (thText) {
+                case '사업분야':
+                    data.category= tdText;
+                    break;
+                case '접수기간':
+                    const resultDate = tdText.replace(/\(.*?\)/g, '').trim();
+                    const applyDate = resultDate.split('~');
+                    data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
+                    data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
+                    break;
+                case '주관기관명':
+                    data.implementingAgency = tdText;
+                    break;
+                case '시행기관명':
+                    data.department = tdText;
+                    break;
+                default:
+                    break;
+              }
+            })
+        });
+
+        const rows = headTable.slice(2, 4); // eq(4)와 eq(5) 선택
         rows.each((index, element) => {
             const thElements = $(element).find('th'); 
             const tdElements = $(element).find('td'); 
@@ -140,31 +168,31 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
             data.manager.push(managerObj);
         });
 
-        //첨부파일
-        tableBox.eq(6).find('a').each((index, file) =>{
-            const fileNm = $(file).text().trim();
-            const fileHref = $(file).attr('href');
-            if(fileHref){
-                const fileLink = fileHref.startsWith('https://') ? fileHref : fileHref.startsWith('/') ? `https://www.cbtp.or.kr${fileHref}` : null;
-                data.attachmentFile.push({
-                    fileNm: fileNm,
-                    fileLink: fileLink
-                });
-            }
+
+        const file = $('#bo_v_file ul');
+        file.find('a').each((index, element) => {
+            const fileNm = $(element).text().trim();
+            const fileHref = $(element).attr('href');
+            const fileLink = fileHref.startsWith('https://') ? fileHref : fileHref.startsWith('/') ? `https://www.sjtp.or.kr${fileHref}` : null;
+            data.attachmentFile.push({
+                fileNm: fileNm,
+                fileLink: fileLink
+            });
+
         });
 
-        //이미지
-        const imgbox = tableBox.eq(7);
+        const imgbox = $('#bo_v_con');
         const imgTags = imgbox.find('img');
         if (imgTags.length > 0) {
                             
             imgTags.each((index, element) => {
                 const imgNm = $(element).attr('title') || `image_${data.title}_${index}`;
                 const imgSrc = $(element).attr('src');
+                
                 if (imgSrc) {
                     const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
                     if (base64Match) {
-                        const imageDir = path.join(__dirname, 'images', 'cbimages'); // 'images/gwimages' 폴더 경로 설정
+                        const imageDir = path.join(__dirname, 'images', 'sjimages'); // 'images/gwimages' 폴더 경로 설정
                         fs.ensureDirSync(imageDir);
                         try {
                             const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
@@ -190,8 +218,8 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
                         console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
                     } else {
                         // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
-                        const fullImgSrc = imgSrc.startsWith('/') ? `http://www.cbtp.or.kr${imgSrc}` : imgSrc;
-                        data.contentImage.push({ imgNm, img: fullImgSrc });
+                        const fullImgSrc = imgSrc.startsWith('/') ? `http://www.sjtp.or.kr${imgSrc}` : imgSrc;
+                        data.contentImage.push({ img: imgNm, imgSrc: fullImgSrc });
                     }
                 } else {
                     console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathId}`);
@@ -211,49 +239,38 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
             data.contents = txtArray.join(' ');
         }
 
+        
+
         //console.log(data);
         return data;
-        } catch(error){
-            //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
-            
-        }
-
+    }catch(error){
+        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+    }
 }
 
-
-async function cbtp(){
-    const siteName= 'cbtp';
+async function sjtp(){
+    const siteName = 'sjtp';
     try{
-        
-        //pathId 스크랩
-        const arrayHref = await getPathIds();
-        const pathIds = arrayHref.map(item => item.pathId);
+        const pathIds = await getPathIds();
+        //console.log(pathIds);
 
-        // href 값만 추출하여 detailUrls 배열에 저장
-        const detailUrls = arrayHref.map(item => `${baseUrl}${item.href}`);
-
-        //필터링 체크
-        const filterPathIds = await filterPathId(pathIds, siteName);
+        const filterPathIds = await filterPathId(pathIds,siteName);
         if (filterPathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;
         }
-    
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-        // //상세페이지 스크랩
-        const detailDataPromises = filterPathIds.map((pathId, index) =>
-            scrapeDetailPage(detailUrls[index], pathId, siteName)
+        const detailDataPromises = filterPathIds.map(pathId => 
+            scrapeDetailPage(pathId, siteName)
         );
         const detailDataResults = await Promise.all(detailDataPromises);
         const filteredDataResults = detailDataResults.filter(data => data !== null);
 
-        //DB 저장
+        // 데이터 저장
         await saveDataInChunks(filteredDataResults, siteName);
+    }catch(error){
 
-    } catch(error){
-        console.log(`gwtp()에서 에러,${error.message}: `,error)
     }
 }
 
@@ -275,5 +292,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//cbtp();
-export default cbtp;
+//sjtp();
+export default sjtp;
