@@ -190,5 +190,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-djtp();
+
 export default djtp;
