@@ -230,5 +230,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-jtp();
+
 export default jtp;
