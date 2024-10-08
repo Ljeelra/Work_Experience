@@ -251,14 +251,15 @@ async function fanfandaero() {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;
         }
-    
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
+
         //상세페이지 스크랩 함수
         const deatailDataPromises = filterePathIds.map(pathId => 
             scrapeDetailPage(pathId, siteName).then(data => ({ ...data, site: siteName }))
         );
         //데이터 promise.all() 처리
         const filteredDataResults = await Promise.all(deatailDataPromises);
+        
         //db 데이터 저장함수
         await saveDataInChunks(filteredDataResults, siteName);
     
