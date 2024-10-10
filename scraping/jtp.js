@@ -208,7 +208,7 @@ async function jtp(){
         // 데이터 저장
         await saveDataInChunks(filteredDataResults, siteName);
     }catch(error){
-
+        console.error('jtp.getPathIds() 에러 발생: ', error);
     }
 }
 
