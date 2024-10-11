@@ -198,5 +198,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-djbea();
+//djbea();
 export default djbea;
