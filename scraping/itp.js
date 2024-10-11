@@ -249,5 +249,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-itp();
+//itp();
 export default itp;

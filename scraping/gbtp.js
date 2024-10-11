@@ -294,5 +294,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gbtp();
+//gbtp();
 export default gbtp;

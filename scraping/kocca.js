@@ -364,5 +364,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-kocca();
+//kocca();
 export default kocca;

@@ -219,5 +219,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-ctp();
+//ctp();
 export default ctp;

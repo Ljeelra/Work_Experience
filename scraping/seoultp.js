@@ -250,5 +250,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-seoultp();
+//seoultp();
 export default seoultp;

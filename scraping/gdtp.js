@@ -195,5 +195,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gdtp();
+//gdtp();
 export default gdtp;

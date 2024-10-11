@@ -450,5 +450,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-sosanggonginmadang();
+//sosanggonginmadang();
 export default sosanggonginmadang;

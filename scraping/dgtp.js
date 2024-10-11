@@ -288,5 +288,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-dgtp();
+//dgtp();
 export default dgtp;

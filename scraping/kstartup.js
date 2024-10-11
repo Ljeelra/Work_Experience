@@ -338,5 +338,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-kstartup();
+//kstartup();
 export default kstartup;

@@ -268,5 +268,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gntp();
+//gntp();
 export default gntp;

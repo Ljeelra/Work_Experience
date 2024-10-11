@@ -287,5 +287,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-fanfandaero();
+//fanfandaero();
 export default fanfandaero;

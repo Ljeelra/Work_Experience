@@ -275,5 +275,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-riia();
+//riia();
 export default riia;

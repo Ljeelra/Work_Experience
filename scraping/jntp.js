@@ -176,7 +176,7 @@ async function scrapeDetailPage(pathId, siteName){
                     break;
               }
             });
-          });
+        });
 
         
         //console.log(data);
@@ -239,5 +239,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-jntp();
+//jntp();
 export default jntp;

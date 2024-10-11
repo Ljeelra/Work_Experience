@@ -249,6 +249,6 @@ async function saveDataInChunks(data, siteName) {
         }
     }
 }
-giupmadang();
+//giupmadang();
 export default giupmadang;
 
