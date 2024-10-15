@@ -196,22 +196,50 @@ async function scrapeDetailPage(dataList, siteName){
 
         const txtcont = $('div.txtcontent');
         const imgTags = txtcont.find('img');
-        const maxSrcLength = 5000;
 
-        if(imgTags.length > 0){
+        if (imgTags.length > 0) {
+                            
             imgTags.each((index, element) => {
+                const imgNm = $(element).attr('title') || `image_${data.title}_${index}`;
                 const imgSrc = $(element).attr('src');
-                if (imgSrc && imgSrc.length < maxSrcLength) {
-                    if (imgSrc.startsWith('/')) {
-                        data.contentImage.push(`https://pms.gtp.or.kr${imgSrc}`);
+                
+                if (imgSrc) {
+                    const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
+                    if (base64Match) {
+                        const imageDir = path.join(__dirname, 'images', 'gtpimages'); // 'images/gwimages' 폴더 경로 설정
+                        fs.ensureDirSync(imageDir);
+                        try {
+                            const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
+                            const now = new Date();
+                            const year = now.getFullYear(); 
+                            const month = String(now.getMonth() + 1).padStart(2, '0'); 
+                            const day = String(now.getDate()).padStart(2, '0'); 
+
+                            const formattedDate = `${year}-${month}-${day}`; 
+                            const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathId}_${index}_${formattedDate}.png` // 이미지 이름 설정
+                            const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
+
+                            if (!fs.existsSync(filePath)) {
+                                fs.writeFileSync(filePath, buffer); // 디코딩된 이미지 저장
+                                data.contentImage.push({ imgNm, img: filePath }); // 파일 경로 저장
+                            } else {
+                                console.log(`파일이 이미 존재합니다: ${filePath}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error saving image for ${imgNm}:`, error);
+                        }
+                    } else if (imgSrc.startsWith('data:image/')) {
+                        console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
                     } else {
-                        // 절대 경로일 경우, 그대로 추가
-                        data.contentImage.push(imgSrc);
+                        // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
+                        const fullImgSrc = imgSrc.startsWith('/') ? `http://www.pms.gtp.or.kr${imgSrc}` : imgSrc;
+                        data.contentImage.push({ img: imgNm, imgSrc: fullImgSrc });
                     }
+                } else {
+                    console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathId}`);
                 }
             });
-            //console.log(data.contentImage);
-        } 
+        }
         const txtArray =[];
         txtcont.find('p').each((index, element) => {
             $(element).find('span').each((i, span) => {
