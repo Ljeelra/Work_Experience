@@ -1,7 +1,7 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
-import iconv from 'iconv-lite';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,20 +11,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
-const listUrl = 'http://www.jntp.or.kr/home/menu/245.do';
-const detailBaseUrl = 'http://www.jntp.or.kr/home/menu/245.do?mode=view&announcement=';
-const MAX_RETRIES = 3;
-const row = 10;
+const chunkSize2 = 10;
+const baseUrl = 'https://giba.or.kr/fe/bizinfo/bizannounce/NR_list.do?bbsCd=11&rowPerPage=10&searchType=&searchStatus=2000&searchKey=0001&currentPage=';
+const detailBaseUrl = 'https://giba.or.kr/fe/bizinfo/bizannounce/NR_view.do?bbsCd=11&currentPage=1&rowPerPage=10&searchStatus=2000&searchKey=0001&bizAnnoSeq=';
 const axiosInstance = axios.create({
-    timeout: 60000, // 60초 타임아웃
-    responseType: 'arraybuffer',
+    timeout: 90000, // 60초 타임아웃
     headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.3',
         'Cache-Control': 'max-age=0',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'http://www.jntp.or.kr/home/menu/245.do',
+        //'Referer': 'https://www.gepa.kr/contents/madang/selectMadangList.do?menuId=223',
         'Sec-Ch-Ua': '"Not:A-Brand";v="8", "Google Chrome";v="123", "Chromium";v="123"',
         'Sec-Ch-Ua-Arch': "x86",
         'Sec-Ch-Ua-Bitness': "64",
@@ -35,9 +33,22 @@ const axiosInstance = axios.create({
         'Sec-Ch-Ua-Wow64': "?0",
         'DNT': '1',
         'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Firefox/131.0'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
+});
+
+
+// axiosRetry 설정: 3번까지 재시도, 재시도 간격은 1초
+axiosRetry(axiosInstance, {
+    retries: 3,
+    retryDelay: (retryCount) => {
+        console.log(`재시도 횟수: ${retryCount}`);
+        return retryCount * 1000; // 재시도 간격 (밀리초)
+    },
+    retryCondition: (error) => {
+        return error.code === 'ECONNABORTED' || error.response.status >= 500;
+    },
 });
 
 async function getPathIds(){
@@ -46,37 +57,39 @@ async function getPathIds(){
     while (true) {
         try{
             console.log(`${page}페이지 pathid 추출 시작합니다`);
-            const response = await axiosInstance.post(listUrl, { page: page, acceptState: '2'});
+            const listUrl = `${baseUrl}${page}`;
+            //console.log(listUrl);
+            const response = await axiosInstance.get(listUrl);
             const $ = cheerio.load(response.data);
 
-            let stopExtraction = false;
+            //console.log($.html());
+
+            let dataFound = false;
     
-            $('tbody tr').each((index, element) => {
-                const status = $(element).find('img').attr('alt');
-                if (status === '접수마감') {
-                    // status.st10 요소가 있으면 루프를 중단합니다.
-                    stopExtraction = true;
-                    return false; // each 루프 중단
+            const tableBox = $('div.list_vtb_w table.list_vtb.notice_list tbody');
+            tableBox.find('tr').each((index, element) => {
+                const href = $(element).find('td.cell_title a.lk_title').attr('href');
+                //console.log('href 추출 체크: ', href);
+                if(href){
+                    const hrefMatch = href.match(/javascript:BIZ.view\('([^']+)'\)/); 
+    
+                    if (hrefMatch) {
+                        const idValue = hrefMatch[1];
+                        pathIds.push(idValue);
+                        dataFound = true;
+                        //console.log(seqValue); 
+                    }
                 }
-
-                const href = $(element).find('td a').attr('href');
-                const idMatch = href.match(/announcement=(\d+)/); 
-                if (idMatch) {
-                    const idValue = idMatch[1]; 
-                    pathIds.push(idValue);
-                    //console.log(seqValue); 
-                }
-
             });       
             
-            if (stopExtraction) {
+            if (!dataFound) {
                 console.log('pathId 추출이 종료되었습니다.');
                 break; // while 루프 중단
             }
     
             page++;
         } catch(error){
-            console.log('gtp.getListPathIds() 에러 발생: ',error);
+            console.log('giba.getPathIds() 에러 발생: ',error);
         }
         
     }
@@ -105,14 +118,11 @@ async function scrapeDetailPage(pathId, siteName){
         title:null,
         site: siteName,
         pathId: pathId,
-        implementingAgency: null,
-        manager: null,
+        category: null,
         requestStartedOn: null,
         requestEndedOn: null,
-        businessPerpose: null,
+        announcementDate: null,
         overview: null,
-        document: null,
-        contact: null,
         attachmentFile: []
     };
     try{
@@ -121,63 +131,49 @@ async function scrapeDetailPage(pathId, siteName){
         const detailHtml = await axiosInstance.get(detailUrl);
         const $ = cheerio.load(detailHtml.data);
 
-        data.title=$('tbody tr').find('td').eq(0).text().trim();
-        $('table.tbl_type1 tbody tr').each((index, element) => {
+        const titleBox = $('div.vskintit_tb');
+        data.title = titleBox.find('div.vskintit').text().trim();
+        data.category = titleBox.find('span.lk_kind').text().trim();
 
-            const thElements = $(element).find('th');
-            const tdElements = $(element).find('td');
-          
-            thElements.each((i, th) => {
-              const thText = $(th).text().trim();
-              const td = $(tdElements[i]);
-              const tdText = td.text().trim();
-          
-              switch (thText) {
-                case '접수기간':
-                    const dateTerm = tdText.replace(/[\n\t]/g, '').replace(/\s+/g, ' ').replace(/[()]/g, '').trim();
-                    const applyDate = dateTerm.split('~');
-                    data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-                    data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
-                    break;
-                case '주관기관':
-                    data.implementingAgency = tdText;
-                    break;
-                case '담당자':
-                    data.manager = tdText;
-                    break;
-                case '문의처':
-                    data.contact = tdText;
-                    break;
-                case '사업목적':
-                  data.businessPerpose = tdText;
-                    break;
-                case '사업내용':
-                  data.overview = tdText;
-                    break;
-                case '공동제출서류':
-                  data.document = tdText;
-                    break;
-                case '첨부파일':
-                    td.find('a').each((index, element) => {
-                        const fileNm = $(element).text().trim();
-                        const fileHref = $(element).attr('href');
-                        if (fileHref) {
-                            const fileLink = fileHref.startsWith('https://') ? fileHref : fileHref.startsWith('/') ? `https://www.cbtp.or.kr${fileHref}` : null; 
-                            data.attachmentFile.push({
-                                fileNm: fileNm,
-                                fileLink: fileLink
-                            });
-                        }
-                    });
-                  
-                    break;
-                default:
-                    break;
-              }
-            });
+        const content = $('div.vskin_z');
+        data.announcementDate = content.find('div.vskinsub_low').eq(0).find('div.vskinsub_td.vskinsub_right dd div.vsk_data').text().trim();
+
+        const dateTerm = content.find('div.vskinsub_low').eq(1).find('dd div.vsk_data').text().trim();
+        const applyDate = dateTerm.split('~');
+        data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
+        data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
+
+        const editText = $('div.vskin_editor');
+        const txtArray =[];
+        editText.find('span').each((index, element) => {
+            const ptext = $(element).text().trim().replace(/\n+/g, '\n');
+            if (ptext) {
+                txtArray.push(ptext);
+            }
+        });
+        const editTxt = editText.text().trim().replace(/\n+/g, '\n');
+        if(editTxt){
+            txtArray.push(editTxt);
+        }
+
+        if (txtArray.length > 0) {
+            data.overview = txtArray.join(' ');
+        }
+        
+        const file = $('div.vskin_adf_low');
+        file.find('ul.vskadf_vlist li').each((index, element) => {
+            const fileNm = $(element).find('div.vskadf_vwpsp').text().trim();
+            const fileHref = $(element).find('a').attr('href');
+            if (fileHref) {
+                const fileLink = fileHref.startsWith('https://') ? fileHref : fileHref.startsWith('/') ? `https://giba.or.kr${fileHref}` : null; 
+                data.attachmentFile.push({
+                    fileNm: fileNm,
+                    fileLink: fileLink
+                });
+            }
         });
 
-        
+
         //console.log(data);
         return data;
     } catch(error){
@@ -190,8 +186,8 @@ async function scrapeDetailPage(pathId, siteName){
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function jntp(){
-    const siteName = 'jntp';
+async function giba(){
+    const siteName = 'giba';
     try{
         const pathIds = await getPathIds();
         console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
@@ -238,5 +234,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//jntp();
-export default jntp;
+giba();
+export default giba;
