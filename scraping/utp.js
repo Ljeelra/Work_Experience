@@ -192,5 +192,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-utp();
+//utp();
 export default utp;

@@ -292,5 +292,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gbsa();
+//gbsa();
 export default gbsa;

@@ -297,5 +297,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-jbtp();
+//jbtp();
 export default jbtp;

@@ -305,5 +305,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-jbsc();
+//jbsc();
 export default jbsc;

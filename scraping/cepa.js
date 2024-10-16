@@ -338,5 +338,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-cepa();
+//cepa();
 export default cepa;

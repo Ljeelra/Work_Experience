@@ -234,5 +234,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-giba();
+//giba();
 export default giba;

@@ -1,8 +1,7 @@
-//process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
-import https from 'https';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,18 +11,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
-const baseUrl = 'https://www.cba.ne.kr/home/sub.php?menukey=172';
-const detailBaseUrl = 'https://www.cba.ne.kr/home/sub.php?menukey=172&mod=view&scode=00000004&no=';
 const chunkSize2 = 10;
+const baseUrl = 'https://www.jba.or.kr/bbs/board.php?bo_table=2_1_1_1&page=10&page=';
+const detailBaseUrl = 'https://www.jba.or.kr/bbs/board.php?bo_table=2_1_1_1&wr_id=';
 const axiosInstance = axios.create({
-    timeout: 60000, // 60초 타임아웃
+    timeout: 90000, // 60초 타임아웃
     headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.3',
         'Cache-Control': 'max-age=0',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': 'https://www.cba.ne.kr/home/sub.php?menukey=172',
+        'Referer': 'https://www.jba.or.kr/bbs/board.php?bo_table=2_1_1_1',
         'Sec-Ch-Ua': '"Not:A-Brand";v="8", "Google Chrome";v="123", "Chromium";v="123"',
         'Sec-Ch-Ua-Arch': "x86",
         'Sec-Ch-Ua-Bitness': "64",
@@ -37,10 +36,22 @@ const axiosInstance = axios.create({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
-    // httpsAgent: new https.Agent({  
-    //     rejectUnauthorized: false // SSL 인증서 검증 비활성화
-    // })
 });
+
+
+// axiosRetry 설정: 3번까지 재시도, 재시도 간격은 1초
+axiosRetry(axiosInstance, {
+    retries: 3,
+    retryDelay: (retryCount) => {
+        console.log(`재시도 횟수: ${retryCount}`);
+        return retryCount * 1000; // 재시도 간격 (밀리초)
+    },
+    retryCondition: (error) => {
+        return error.code === 'ECONNABORTED' || error.response.status >= 500;
+    },
+});
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function filterPathId(scrapedData, siteName) {
     try {
@@ -58,10 +69,6 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function getListPathIds(){
     const pathIds = [];
     let page = 1;
@@ -74,40 +81,42 @@ async function getListPathIds(){
         try{
             console.log(`${page}페이지 pathid 추출 시작합니다`);
             const formattedDate = `${yyyy}.${mm}.${dd}`;
-            //console.log(formattedDate);
-            let listUrl = `${baseUrl}&mod=&scode=00000004&page=${page}`;
+            const listUrl = `${baseUrl}${page}`
+            //console.log(listUrl);
             const listHtml = await axiosInstance.get(listUrl);
             const $ = cheerio.load(listHtml.data);
             
             //console.log(listHtml.data);
             //공고 등록일이 2023년도인 공고가 나오면 while문 페이지 스크랩 종료
             let stopping = false;
-            $('table.board.m_board tbody tr').each((index, element) =>{
-            const dataText = $(element).find('td').eq(4).text().trim();
+            $('tr.bg').each((index, element) =>{
+            const dataText = $(element).find('td.datetime').text().trim();
             //console.log('공고작성일: '+dataText);
-            const year = dataText.split('/')[0];
+            const year = dataText.split('-')[0];
             //console.log('공고작성년도: '+year);
 
-            if(year ==='2023'){
+            const hasImage = $(element).find('td.num img').length > 0;
+            
+            if(year === '23' && !hasImage){
                 stopping = true;
                 return false;
             }
             //a태그 text 값에 (~M.dd)가 있고 오늘 날짜랑 비교해서 이전이면 스크랩할 필요 없음.
-                const href = $(element).find('td.txt_left a').attr('href');
-                //console.log('href값',href);
-                const regex = /no=(\d+)/;
+                const href = $(element).find('td.subject a').attr('href');
+                //console.log('href값: ',href);
+                const regex = /wr_id=(\d+)/;
                 const match = href.match(regex);
                 //console.log('match:',match);
 
-                const linkText = $(element).find('td.txt_left a').text().trim();
+                const linkText = $(element).find('td.subject a').text().trim();
                 //console.log('a text값: ', linkText);
                 const dateRegex = /~?(\d{1,2}\.\s?\d{1,2})/; // 형식이 ~M.dd 인 경우
                 const dateMatch = linkText.match(dateRegex);
                 //console.log('dateMatch 값: ', dateMatch);
 
-                if (linkText.includes('마감')) {
-                    //console.log("모집마감이 포함된 경우, pathId 추출하지 않음.");
-                    return; // "모집마감"이 포함된 경우 추출하지 않음
+                if (linkText.includes('모집마감') || linkText.includes('마감')) {
+                    
+                    return; // "마감"이 포함된 경우 추출하지 않음
                 }
 
                 if (dateMatch) {
@@ -123,7 +132,8 @@ async function getListPathIds(){
                     const pathId = match[1];
                     //console.log('pathId 출력: ',pathId);
                     pathIds.push(pathId);
-                }               
+                }
+                     
     
             });
     
@@ -146,6 +156,7 @@ async function scrapeDetailPage(pathId, siteName){
         site: siteName,
         title: null,
         announcementDate: null,//공고일
+        implementingAgency: null,
         contents: null,
         contentImage: [],
         attachmentFile: []
@@ -156,25 +167,48 @@ async function scrapeDetailPage(pathId, siteName){
 
         const detailHtml = await axiosInstance.get(detailUrl);
         const $ = cheerio.load(detailHtml.data);
+        
+        data.title = $('div.view_title').text().trim();
 
-        const info = $('table.board_insert.m_board_insert tbody')
-        data.title = info.find('tr').eq(0).text().trim();
-        //console.log('공고제목: ', data.title);
-        data.announcementDate = info.find('tr').eq(1).find('td').eq(1).text().trim();
-        //console.log('공고일: ',data.announcementDate);
+        data.implementingAgency = $('div.mb_area p').contents().filter(function() {
+            return this.type === 'text';
+        }).text().trim();
+        data.announcementDate = $('div.mb_area div[style="color:#888;"]').contents().filter(function() {
+            return this.type === 'text';
+        }).text().trim();
 
-        const imgbox = $('div.substance');
+        const file = $('div#view_file_download_area')
+        file.find('a').each((index, element) => {
+            const fileHref = $(element).attr('onclick');
+            const fileNm = $(element).find('span').text().trim();
+            //console.log(fileHref);
+            const fileMatch = fileHref.match(/file_download\('([^']+)'/);
+            if (fileMatch) {
+                const fileLink = fileMatch[1].replace(/^\./, '').startsWith('https://') 
+                    ? fileMatch[1].replace(/^\./, '') 
+                    : fileMatch[1].replace(/^\./, '').startsWith('/') 
+                    ? `https://www.jba.or.kr/bbs${fileMatch[1].replace(/^\./, '')}` 
+                    : null;
+
+                data.attachmentFile.push({
+                    fileNm: fileNm,
+                    fileLink: fileLink
+                });
+            }
+        });
+
+        const imgbox = $('#writeContents');
         const imgTags = imgbox.find('img');
         if (imgTags.length > 0) {
                             
             imgTags.each((index, element) => {
-                const imgNm = $(element).attr('title') || `image_${data.title}_${index}`;
+                const imgNm = $(element).attr('alt') || `image_${data.title}_${index}`;
                 const imgSrc = $(element).attr('src');
                 
                 if (imgSrc) {
                     const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
                     if (base64Match) {
-                        const imageDir = path.join(__dirname, 'images', 'cbaimages'); // 'images/gwimages' 폴더 경로 설정
+                        const imageDir = path.join(__dirname, 'images', 'jbaimages'); // 'images/gwimages' 폴더 경로 설정
                         fs.ensureDirSync(imageDir);
                         try {
                             const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
@@ -200,7 +234,7 @@ async function scrapeDetailPage(pathId, siteName){
                         console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
                     } else {
                         // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
-                        const fullImgSrc = imgSrc.startsWith('/') ? `https://www.cba.ne.kr${imgSrc}` : imgSrc;
+                        const fullImgSrc = imgSrc.startsWith('/') ? `https://www.jba.or.kr${imgSrc}` : imgSrc;
                         data.contentImage.push({ img: imgNm, imgSrc: fullImgSrc });
                     }
                 } else {
@@ -221,24 +255,6 @@ async function scrapeDetailPage(pathId, siteName){
             data.contents = txtArray.join(' ');
         }
 
-        const file = info.find('tr').eq(2);
-        file.find('div.clearfix').each((index, element) => {
-            const firstAnchor = $(element).children('a').first(); // div.clearfix 내 첫 번째 a 태그 선택
-            const fileNm = firstAnchor.text().trim(); 
-            const href = firstAnchor.attr('href'); 
-        
-            if (href) {
-                const fileUrl = `https://www.cba.ne.kr${href}`;
-        
-                data.attachmentFile.push({
-                    fileNm: fileNm,
-                    fileLink: fileUrl
-                });
-            } else {
-                console.log('href 속성이 없습니다.');
-            }
-        });
-
         //console.log(data);
         return data;
         
@@ -247,19 +263,19 @@ async function scrapeDetailPage(pathId, siteName){
     }
 }
 
-async function cba(){
-    const siteName = 'cba';
+async function jba(){
+    const siteName = 'jba';
 
     try{
         //페이지 별로 pathId 추출 공고 함수 호출
         const pathId = await getListPathIds();
-        const pathIds = [...new Set(pathId)];
-        console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
-        //console.log('pathid 배열 확인: ',pathIds);
+        const uniqueId = [...new Set(pathId)];
+        console.log(`총 ${pathId.length}개의 pathId가 스크랩되었습니다.`);
+        console.log(`총 ${uniqueId.length}개의 uniqueId가 스크랩되었습니다.`);
+        //console.log('pathid 배열 확인: ',uniqueId);
     
-
          //pathId 필터링
-        const filterePathIds = await filterPathId(pathIds,siteName);
+        const filterePathIds = await filterPathId(uniqueId,siteName);
         if (filterePathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;
@@ -285,7 +301,6 @@ async function cba(){
 
         // 데이터 저장
         await saveDataInChunks(detailDataResults, siteName);
-
     }catch(error){
         console.log('seoultp() 에서 에러 발생: ',error);
     }
@@ -309,5 +324,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//cba();
-export default cba;
+//jba();
+export default jba;

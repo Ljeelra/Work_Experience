@@ -1,6 +1,13 @@
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const chunkSize = 50;
 const listUrl = 'https://pms.gtp.or.kr/web/business/webBusinessList.do?';
@@ -216,7 +223,7 @@ async function scrapeDetailPage(dataList, siteName){
                             const day = String(now.getDate()).padStart(2, '0'); 
 
                             const formattedDate = `${year}-${month}-${day}`; 
-                            const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathId}_${index}_${formattedDate}.png` // 이미지 이름 설정
+                            const fileName = `${imgNm.replace(/\s+/g, '_')}_${dataList.pathId}_${index}_${formattedDate}.png` // 이미지 이름 설정
                             const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
 
                             if (!fs.existsSync(filePath)) {
@@ -267,7 +274,7 @@ async function scrapeDetailPage(dataList, siteName){
         });
 
 
-        //console.log(data);
+        console.log(data);
         return data;
     } catch(error){
         console.log('상세페이지 스크랩에서 에러 발생: ', error);
@@ -315,10 +322,10 @@ async function gtp(){
         //console.log(combinedResults);
 
         //DB 저장 함수 호출
-        await saveDataInChunks(combinedResults, siteName);
+        // await saveDataInChunks(combinedResults, siteName);
 
     }catch(error){
-        console.log('seoultp() 에서 에러 발생: ',error);
+        console.log('gtp() 에서 에러 발생: ',error);
     }
 }
 
@@ -340,5 +347,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gtp();
+//gtp();
 export default gtp;

@@ -198,5 +198,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-sosanggongin();
+//sosanggongin();
 export default sosanggongin;

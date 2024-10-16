@@ -322,5 +322,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-bepa();
+//bepa();
 export default bepa;

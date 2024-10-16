@@ -322,6 +322,6 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-jungsoventure();
+//jungsoventure();
 export default jungsoventure;
 

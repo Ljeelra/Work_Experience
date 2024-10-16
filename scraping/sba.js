@@ -198,5 +198,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-sba();
+//sba();
 export default sba;

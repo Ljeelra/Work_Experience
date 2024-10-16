@@ -312,5 +312,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gwep();
+//gwep();
 export default gwep;

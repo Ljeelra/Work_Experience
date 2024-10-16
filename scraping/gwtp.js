@@ -239,5 +239,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-gwtp();
+// gwtp();
 export default gwtp;
