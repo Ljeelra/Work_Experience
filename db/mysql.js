@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 import { dbConfig } from '../config.js';
 
-const pool = mysql.createPool(dbConfig);
+export const pool = mysql.createPool(dbConfig);
 
 export async function getConnection() {
     return await pool.getConnection();
@@ -21,4 +21,3 @@ export async function logPoolStatus() {
     console.log(`Pending connections: ${queueSize}`);
 }
 
-export default pool;

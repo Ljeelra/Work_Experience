@@ -1,4 +1,4 @@
-import pool from '../db/mysql.js';
+import {pool} from '../db/mysql.js';
 
 // 데이터 삽입 함수
 export async function saveDetail(data, siteName) {

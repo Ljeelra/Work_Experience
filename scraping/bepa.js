@@ -1,7 +1,7 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import https from 'https';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const baseUrl = 'https://www.bepa.kr/kor/view.do?no=1502';
 const row = 10;
 const axiosInstance = axios.create({
@@ -35,6 +36,9 @@ const axiosInstance = axios.create({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
+    httpsAgent: new https.Agent({  
+        rejectUnauthorized: false // SSL 인증서 검증 비활성화
+    })
 });
 
 async function getNo() {
@@ -255,6 +259,10 @@ async function scrapeDetailPage(detailUrl, pathId, no, siteName){
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 let menuList= [];
 
 async function bepa(){
@@ -278,13 +286,15 @@ async function bepa(){
                 console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
 
                 //상세페이지 스크랩
-                const detailedDataPromises = filterePathIds.map(async (pathId) => {
+                const detailedDataResults = [];
+                for (const pathId of filterePathIds) {
                     const detailUrl = `https://www.bepa.kr/kor/view.do?view=view&no=${no}&idx=${pathId}`;
-                    //console.log('detailUrl 체크:' + detailUrl);
-                    return await scrapeDetailPage(detailUrl, pathId, no, siteName);
-                });
-
-                const detailedDataResults = await Promise.all(detailedDataPromises);
+                    await delay(2000);
+                    const result = await scrapeDetailPage(detailUrl, pathId, no, siteName);
+                    if (result !== null) {
+                        detailedDataResults.push(result);
+                    }
+                }
                 const filteredDataResults = detailedDataResults.filter(data => data !== null);
                 
                 // 모든 상세 데이터를 저장
@@ -294,7 +304,7 @@ async function bepa(){
         }
 
         if (allDetailedData.length > 0) {
-            await saveDataInChunks(allDetailedData);
+            await saveDataInChunks(allDetailedData, siteName);
         } else {
             console.log("새로운 데이터가 없어 저장할 수 없습니다");
         }

@@ -4,14 +4,89 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { pool, logPoolStatus } from './db/mysql.js';
-import giupmadang from './scraping/giupmadang.js'; // 경로를 올바르게 설정하세요.
 import { closePool } from './db/db.js';
 
+//스크랩 사이트 목록
+import bepa from './scraping/bepa.js';
+import btp from './scraping/btp.js';
+import cba from './scraping/cba.js';
+import cbtp from './scraping/cbtp.js';
+import cepa from './scraping/cepa.js';
+import ctp from './scraping/ctp.js';
+import dgtp from './scraping/dgtp.js';
+import djbea from './scraping/djbea.js';
+import djtp from './scraping/djtp.js';
+import fanfandaero from './scraping/fanfandaero.js';
+import gbsa from './scraping/gbsa.js';
+import gbtp from './scraping/gbtp.js';
+import gdtp from './scraping/gdtp.js';
+import gepa from './scraping/gepa.js';
+import giba from './scraping/giba.js';
+import giupmadang from './scraping/giupmadang-view.js';
+import gjtp from './scraping/gjtp.js';
+import gntp from './scraping/gntp.js';
+import gwep from './scraping/gwep.js';
+import gwtp from './scraping/gwtp.js';
+import itp from './scraping/itp.js';
+import jba from './scraping/jba.js';
+import jbsc from './scraping/jbsc.js';
+import jbtp from './scraping/jbtp.js';
+import jepa from './scraping/jepa.js';
+import jntp from './scraping/jtp.js';
+import jungsoventure from './scraping/jungsoventure.js';
+import kocca from './scraping/kocca.js';
+import kstartup from './scraping/kstartup.js';
+import riia from './scraping/riia.js';
+import sba from './scraping/sba.js';
+import seoultp from './scraping/seoultp.js';
+import sjtp from './scraping/sjtp.js';
+import sosanggongin24 from './scraping/sosanggongin24.js';
+import ubpi from './scraping/ubpi.js';
+import utp from './scraping/utp.js';
+
+
 const scrapingFunctions = {
-    giupmadang: giupmadang
+    bepa: bepa,
+    btp: btp,
+    cba: cba,
+    cbtp: cbtp,
+    cepa: cepa,
+    ctp: ctp,
+    dgtp: dgtp,
+    djbea: djbea,
+    djtp: djtp,
+    fanfandaero: fanfandaero,
+    gbsa: gbsa,
+    gbtp: gbtp,
+    gdtp: gdtp,
+    gepa: gepa,
+    giba: giba,
+    giupmadang: giupmadang,
+    gjtp: gjtp,
+    gntp: gntp,
+    gwep: gwep,
+    gwtp: gwtp,
+    itp: itp,
+    jba: jba,
+    jbsc: jbsc,
+    jbtp: jbtp,
+    jepa: jepa,
+    jntp: jntp,
+    jungsoventure: jungsoventure,
+    kocca: kocca,
+    kstartup: kstartup,
+    riia: riia,
+    sba: sba,
+    seoultp: seoultp,
+    sjtp: sjtp,
+    sosanggongin24: sosanggongin24,
+    ubpi: ubpi,
+    utp: utp,
 };
 
-const sites = ['giupmadang'];
+
+const sites = ['bepa', 'btp', 'cba', 'cbtp', 'cepa', 'ctp', 'dgtp', 'djbea', 'fanfandaero', 'gbsa', 'gbtp', 'gdtp', 'gepa', 'giba', 'giupmadang',
+     'gjtp', 'gntp', 'gwep', 'gwtp', 'itp', 'jba', 'jbsc', 'jbtp', 'jepa', 'jntp', 'jungsoventure', 'kocca', 'kstartup', 'riia', 'sba', 'seoultp', 'sjtp', 'sosanggongin24', 'ubpi', 'utp'];
 
 async function runTasks(tasks, maxConcurrent) {
     const queue = [...tasks];

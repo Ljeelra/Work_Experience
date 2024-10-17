@@ -237,7 +237,7 @@ async function scrapeDetailPage(pathId, siteName){
                 data.contents = txtArray.join(' ');
             }
             
-            console.log(data);
+            //console.log(data);
             return data;
         } catch(error){
             //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);

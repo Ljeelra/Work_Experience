@@ -170,7 +170,7 @@ async function sba(){
         }
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-        const detailDataResults = await processInBatches(pathIds, 20, pathId => scrapeDetailPage(pathId, siteName));
+        const detailDataResults = await processInBatches(filterPathIds, 20, pathId => scrapeDetailPage(pathId, siteName));
         const filteredDataResults = detailDataResults.filter(data => data !== null);
 
         // 데이터 저장

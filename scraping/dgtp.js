@@ -1,7 +1,15 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import https from 'https';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const chunkSize = 50;
 const listUrl = 'https://dgtp.or.kr/bbs/BoardControll.do';
@@ -29,8 +37,23 @@ const axiosInstance = axios.create({
         'Upgrade-Insecure-Requests': '1',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
-    family: 4
+    family: 4,
+    httpsAgent: new https.Agent({  
+        rejectUnauthorized: false // SSL 인증서 검증 비활성화
+    })
 });
+
+axiosRetry(axiosInstance, {
+    retries: 3,
+    retryDelay: (retryCount) => {
+        console.log(`재시도 횟수: ${retryCount}`);
+        return retryCount * 1000; // 재시도 간격 (밀리초)
+    },
+    retryCondition: (error) => {
+        return error.code === 'ECONNABORTED' || error.response.status >= 500;
+    },
+});
+
 async function filterPathId(scrapedData, siteName) {
     try {
         const existingPathIds = await getAllPathIds(siteName);
@@ -188,26 +211,53 @@ async function scrapeDetailPage(pathIds, siteName){
                 }
             });
 
-            //본문 글 or 이미지
+            //본문 글 or 이미지td.pd30
             const board = $('td.pd30');
             const imgTags = board.find('img');
-            const maxSrcLength = 5000;
 
-            if(imgTags.length > 0){
+            if (imgTags.length > 0) {
+                            
                 imgTags.each((index, element) => {
-                    // const imgNm = $(element).attr('alt');
+                    const imgNm = $(element).attr('title') || `image_${data.title}_${index}`;
                     const imgSrc = $(element).attr('src');
-                    if (imgSrc && imgSrc.length < maxSrcLength) {
-                        if (imgSrc.startsWith('/')) {
-                            data.contentImage.push(`https://dgtp.or.kr${imgSrc}`);
+                    
+                    if (imgSrc) {
+                        const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
+                        if (base64Match) {
+                            const imageDir = path.join(__dirname, 'images', 'dgtpimages'); // 'images/gwimages' 폴더 경로 설정
+                            fs.ensureDirSync(imageDir);
+                            try {
+                                const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
+                                const now = new Date();
+                                const year = now.getFullYear(); 
+                                const month = String(now.getMonth() + 1).padStart(2, '0'); 
+                                const day = String(now.getDate()).padStart(2, '0'); 
+    
+                                const formattedDate = `${year}-${month}-${day}`; 
+                                const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathIds}_${index}_${formattedDate}.png` // 이미지 이름 설정
+                                const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
+    
+                                if (!fs.existsSync(filePath)) {
+                                    fs.writeFileSync(filePath, buffer); // 디코딩된 이미지 저장
+                                    data.contentImage.push({ imgNm, img: filePath }); // 파일 경로 저장
+                                } else {
+                                    console.log(`파일이 이미 존재합니다: ${filePath}`);
+                                }
+                            } catch (error) {
+                                console.error(`Error saving image for ${imgNm}:`, error);
+                            }
+                        } else if (imgSrc.startsWith('data:image/')) {
+                            console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
                         } else {
-                            // 절대 경로일 경우, 그대로 추가
-                            data.contentImage.push(imgSrc);
+                            // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
+                            const fullImgSrc = imgSrc.startsWith('/') ? `https://dgtp.or.kr${imgSrc}` : imgSrc;
+                            data.contentImage.push({ img: imgNm, imgSrc: fullImgSrc });
                         }
+                    } else {
+                        console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathId}`);
                     }
                 });
-                //console.log(data.contentImage);
-            } 
+            }
             const txtArray =[];
             board.find('div').each((index, element) => {
                 const ptext = $(element).text().trim().replace(/[\n\t]/g, '');

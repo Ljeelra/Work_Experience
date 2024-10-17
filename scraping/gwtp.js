@@ -126,59 +126,59 @@ async function scrapeDetailPage(pathId, siteName){
             //이미지
             const imgbox = tableBox.eq(3);
             const imgTags = imgbox.find('img');
-                        if (imgTags.length > 0) {
+            if (imgTags.length > 0) {
                             
-                            imgTags.each((index, element) => {
-                                const imgNm = $(element).attr('title') || `image_${index}`;
-                                const imgSrc = $(element).attr('src');
-                                if (imgSrc) {
-                                    const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
-                                    if (base64Match) {
-                                        const imageDir = path.join(__dirname, 'images', 'gwimages'); // 'images/gwimages' 폴더 경로 설정
-                                        fs.ensureDirSync(imageDir);
-                                        try {
-                                            const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
-                                            const now = new Date();
-                                            const year = now.getFullYear(); 
-                                            const month = String(now.getMonth() + 1).padStart(2, '0'); 
-                                            const day = String(now.getDate()).padStart(2, '0'); 
+                imgTags.each((index, element) => {
+                    const imgNm = $(element).attr('title') || `image_${index}`;
+                    const imgSrc = $(element).attr('src');
+                    if (imgSrc) {
+                        const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
+                        if (base64Match) {
+                            const imageDir = path.join(__dirname, 'images', 'gwimages'); 
+                            fs.ensureDirSync(imageDir);
+                            try {
+                                const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
+                                const now = new Date();
+                                const year = now.getFullYear(); 
+                                const month = String(now.getMonth() + 1).padStart(2, '0'); 
+                                const day = String(now.getDate()).padStart(2, '0'); 
 
-                                            const formattedDate = `${year}-${month}-${day}`; 
-                                            const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathId}_${index}_${formattedDate}.png` // 이미지 이름 설정
-                                            const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
-
-                                            if (!fs.existsSync(filePath)) {
-                                                fs.writeFileSync(filePath, buffer); // 디코딩된 이미지 저장
-                                                data.contentImage.push({ imgNm, img: filePath }); // 파일 경로 저장
-                                            } else {
-                                                console.log(`파일이 이미 존재합니다: ${filePath}`);
-                                            }
-                                        } catch (error) {
-                                            console.error(`Error saving image for ${imgNm}:`, error);
-                                        }
-                                    } else if (imgSrc.startsWith('data:image/')) {
-                                        console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
-                                    } else {
-                                        // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
-                                        const fullImgSrc = imgSrc.startsWith('/') ? `http://www.gwtp.or.kr${imgSrc}` : imgSrc;
-                                        data.contentImage.push({ imgNm, img: fullImgSrc });
-                                    }
+                                const formattedDate = `${year}-${month}-${day}`; 
+                                const sanitizedPathId = pathId.replace(/\|\|/g, '_');
+                                const fileName = `${imgNm.replace(/[^\w.-]+/g, '_')}_${sanitizedPathId}_${formattedDate}.png`;
+                                const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
+                                //console.log('Saving image to:', filePath);
+                                if (!fs.existsSync(filePath)) {
+                                    fs.writeFileSync(filePath, buffer); // 디코딩된 이미지 저장
+                                    data.contentImage.push({ imgNm, img: filePath }); // 파일 경로 저장
                                 } else {
-                                    console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathId}`);
+                                    console.log(`파일이 이미 존재합니다: ${filePath}`);
                                 }
-                            });
-                        }
-
-                        const txtArray =[];
-                        imgbox.find('p').each((index, element) => {
-                            const ptext = $(element).text().trim();
-                            if (ptext) {
-                                txtArray.push(ptext);
+                            } catch (error) {
+                                console.error(`Error saving image for ${imgNm}:`, error);
                             }
-                        });
-                        if (txtArray.length > 0) {
-                            data.contents = txtArray.join(' ');
+                        } else if (imgSrc.startsWith('data:image/')) {
+                            console.warn(`Invalid base64 format for image: ${imgNm} in URL: ${pathId}`);
+                        } else {
+                            // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
+                            const fullImgSrc = imgSrc.startsWith('/') ? `http://www.gwtp.or.kr${imgSrc}` : imgSrc;
+                            data.contentImage.push({ imgNm, img: fullImgSrc });
                         }
+                    } else {
+                        console.warn(`imgSrc is undefined for element: ${index} in URL: ${pathId}`);
+                    }
+                });
+            }
+            const txtArray =[];
+            imgbox.find('p').each((index, element) => {
+                const ptext = $(element).text().trim();
+                if (ptext) {
+                    txtArray.push(ptext);
+                }
+            });
+            if (txtArray.length > 0) {
+                data.contents = txtArray.join(' ');
+            }
 
             //console.log(data);
             return data;
@@ -239,5 +239,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-// gwtp();
+gwtp();
 export default gwtp;

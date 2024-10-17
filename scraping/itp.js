@@ -1,14 +1,16 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const listUrl = 'https://www.itp.or.kr/intro.asp?tmid=13';
 const detailBaseUrl = 'https://www.itp.or.kr/intro.asp?tmid=13&seq=';
 const MAX_RETRIES = 3;
 const row = 10;
 const axiosInstance = axios.create({
-    timeout: 60000, // 60초 타임아웃
+    timeout: 90000, // 60초 타임아웃
     headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -29,6 +31,21 @@ const axiosInstance = axios.create({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
+});
+
+axiosRetry(axiosInstance, {
+    retries: MAX_RETRIES,
+    retryDelay: (retryCount) => {
+        console.log(`재시도 횟수: ${retryCount}`);
+        return retryCount * 2000; // 재시도 간격 (밀리초)
+    },
+    retryCondition: (error) => {
+        if (!error.response) {
+            console.log("네트워크 오류로 인해 재시도합니다.");
+            return true; // 네트워크 오류인 경우 재시도
+        }
+        return error.response.status >= 500;
+    },
 });
 
 async function filterPathId(scrapedData, siteName) {
@@ -113,8 +130,6 @@ async function scrapeDetailPage(pathIds, siteName){
         contentImage: [],
         attachmentFile: []
     };
-    let retries = 0;
-    while (retries < MAX_RETRIES) {
         try{
             const detailUrl = `${detailBaseUrl}${pathIds}`;
             //console.log(detailUrl);
@@ -184,16 +199,12 @@ async function scrapeDetailPage(pathIds, siteName){
             return data;
         } catch(error){
             console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            retries++;
-            if (retries < MAX_RETRIES) {
-                console.log(`재시도 중... (${retries}/${MAX_RETRIES})`);
-                await new Promise(res => setTimeout(res, 2000)); // 2초 대기
-            } else {
-                console.error(`최대 재시도 횟수를 초과했습니다. pathId: ${data.pathId}`);
-                return null;
-            }
         }
-    }
+    
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function itp(){
@@ -208,23 +219,33 @@ async function itp(){
         pathIds = [...ongoingPathIds, ...openPathIds];
         console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
 
-        const filterPathIds = await filterPathId(pathIds,siteName);
-        if (filterPathIds.length === 0) {
+        const filterePathIds = await filterPathId(pathIds,siteName);
+        if (filterePathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;
         }
     
-        console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
+        console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
 
         //상세페이지 스크랩
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
+            const chunk = filterePathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                await delay(3000); // 3초 딜레이 추가
+                return null;
+            }));
+
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+        }
+
 
         //DB 저장 함수 호출
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
         console.log('itp()에서 에러가 발생 : ',error);

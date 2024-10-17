@@ -234,7 +234,7 @@ async function riia(){
             //상세페이지에서 db에 삽입할 데이터 return받고 return받은 데이터에 추출했던 유니크키랑 접수기간, 공고일 데이터 합치기
             const detailedDataPromises = filterePathIds.map(async (data) => {
                 const detailUrl = `${regionUrl}/view/${data.pathId}`;
-                console.log('detailUrl 체크:' + detailUrl);
+                //console.log('detailUrl 체크:' + detailUrl);
                 return getDetailedData(detailUrl, data.pathId, headers)
                     .then(detailedData => ({
                         ...detailedData,

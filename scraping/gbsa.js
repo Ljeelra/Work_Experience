@@ -177,7 +177,7 @@ async function scrapeDetailPage(pathId, siteName){
                 if (imgSrc) {
                     const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
                     if (base64Match) {
-                        const imageDir = path.join(__dirname, 'images', 'gbsaimages'); // 'images/gwimages' 폴더 경로 설정
+                        const imageDir = path.join(__dirname, 'images', 'gbsaimages'); 
                         fs.ensureDirSync(imageDir);
                         try {
                             const buffer = Buffer.from(base64Match[2], 'base64'); // 디코딩
@@ -266,8 +266,8 @@ async function gbsa(){
         }
         console.log(detailDataResults);
 
-        // // 데이터 저장
-        // await saveDataInChunks(filteredDataResults, siteName);
+        // 데이터 저장
+        await saveDataInChunks(filteredDataResults, siteName);
     
     } catch(error){
         console.log('gbsa() 에러 발생: ',error)

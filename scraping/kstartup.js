@@ -90,9 +90,9 @@ async function filterPathId(scrapedData, siteName) {
 }
 
 //pathId 추출하는 함수
-async function getPagePathId(payload, startPage = 1) {
+async function getPagePathId(payload) {
     const pathIds = [];
-    let page = startPage;
+    let page = 1;
 
     while (true) {
         try {
@@ -100,11 +100,12 @@ async function getPagePathId(payload, startPage = 1) {
             const response = await axiosInstance.post(`${postUrl}page=${page}`, {...payload});
             const html = response.data;
             const $ = cheerio.load(html);
-            //console.log(response.data);
+            //console.log($.html());
             // 실제 pathId 추출 로직을 여기에 추가
             let dataFound = false;
             $('ul .notice').each((index, element) => {
                 const href = $(element).find('div.right > div.middle > a').attr('href');
+                console.log('여기에 들어가긴 하나?');
                 if (href) {
                     const regex = /javascript:go_view\((\d+)\)/;
                     const match = href.match(regex);
@@ -120,6 +121,7 @@ async function getPagePathId(payload, startPage = 1) {
 
             if (!dataFound) {
                 console.log(`페이지 ${page}에 pathId가 없습니다.`);
+
                 break;
             }
 
@@ -280,10 +282,14 @@ async function scrapeDetailPage(pathId, siteName){
     }
 }
 
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function kstartup(){
     //PBC010이 공공기관, PBC020이 민간기관
-
-    //공공기관, 민간기관 공고 목록에서 페이지 별로 pathId 추출하는 함수
+    try{
+         //공공기관, 민간기관 공고 목록에서 페이지 별로 pathId 추출하는 함수
     const siteName = 'kstartup';
     let allPathIds = {};
     for (const payload of payloads) {
@@ -305,19 +311,24 @@ async function kstartup(){
     }
 
     console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
-
     
-    const detailDataPromises = filterePathIds.map(pathId => 
-        scrapeDetailPage(pathId, siteName).then(data => ({ ...data, site: siteName }))
-    );
-    const detailDataResults = await Promise.all(detailDataPromises);
-    const filteredDataResults = detailDataResults.filter(data => data !== null);
-
-      
-
+    const detailDataResults = [];
+        for (const pathId of filterePathIds) {
+            const data = await scrapeDetailPage(pathId, siteName); // 각 pathId에 대해 데이터 요청
+            if (data !== null) {
+                detailDataResults.push({ ...data, site: siteName }); // 데이터가 null이 아닐 경우 저장
+            }
+            await delay(5000); // 5초 딜레이 추가
+        }    
+    console.log(`${detailDataResults.length}개의 데이터를 수집하였습니다.`);
+    
     //배치로 데이터 저장하는 함수
-    await saveDataInChunks(filteredDataResults, siteName);
+    await saveDataInChunks(detailDataResults, siteName);
 
+    }catch(error){
+        console.log(`kstartup()에서 에러 발생: `, error.message);
+    }
+   
 }
 
 async function saveDataInChunks(data, siteName) {
@@ -338,5 +349,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//kstartup();
+kstartup();
 export default kstartup;
