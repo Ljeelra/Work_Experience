@@ -307,11 +307,11 @@ async function gepa(){
                 if (data !== null) {
                     return data;
                 }
-                await delay(3000); // 3초 딜레이 추가
                 return null;
             }));
-
+            
             detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
         }
 
         // //DB 저장 함수 호출

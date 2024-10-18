@@ -160,3 +160,5 @@ scraping/gbimages/image.png_9280_0_2024-09-30.png
 scraping/gbimages/image.png_9280_1_2024-09-30.png
 scraping/gbimages/image.png_9280_2_2024-09-30.png
 scraping/gbimages/image.png_9280_3_2024-09-30.png
+.env.development
+.vscode/sftp.json

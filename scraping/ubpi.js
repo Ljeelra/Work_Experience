@@ -160,6 +160,10 @@ async function scrapeDetailPage(onlyPathId, siteName, menuNo){
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 let menuList = [];
 
 async function ubpi(){
@@ -175,6 +179,7 @@ async function ubpi(){
             const pathIds = await getPathIds(listUrl);
             for (const pathId of pathIds) {
                 allPathIds.push(`${no}:${pathId}`);
+                await delay(2000);
             }
         }
         //console.log(allPathIds);

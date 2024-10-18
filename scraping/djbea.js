@@ -147,6 +147,10 @@ async function scrapeDetailPage(pathId, siteName){
 
 const menuList = ['MENU00315', 'MENU00316', 'MENU00317', 'MENU00314', 'MENU00318'];
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function djbea(){
     const siteName = 'djbea';
     const allPathIds = [];
@@ -166,11 +170,15 @@ async function djbea(){
         }
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const filteredDataResults = []; // 결과를 저장할 배열 초기화
+
+        for (const pathId of filterPathIds) {
+            const data = await scrapeDetailPage(pathId, siteName);
+            if (data !== null) {
+                filteredDataResults.push(data);
+            }
+            await delay(2000); // 2초 딜레이 추가
+        }
 
         // 데이터 저장
         await saveDataInChunks(filteredDataResults, siteName);

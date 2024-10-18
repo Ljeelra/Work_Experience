@@ -3,7 +3,9 @@ import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const row = 15;
+
 
 const listurl = `http://www.seoultp.or.kr/user/nd19746.do?`;
 const detailBaseUrl = 'https://www.seoultp.or.kr/user/nd19746.do?View&boardNo=';
@@ -199,6 +201,10 @@ async function scrapeDetailPage(pathId, siteName){
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function seoultp(){
     const siteName = 'seoultp';
 
@@ -214,18 +220,25 @@ async function seoultp(){
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;
         }
-    
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);      
     
         //상세페이지 스크랩
-        const detailDataPromises = filterePathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName).then(data => ({ ...data, site: siteName }))
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
+            const chunk = filterePathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));    
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         //DB 저장 함수 호출
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
 
     }catch(error){
         console.log('seoultp() 에서 에러 발생: ',error);

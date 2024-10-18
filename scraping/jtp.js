@@ -186,6 +186,10 @@ async function scrapeDetailPage(pathId, siteName){
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function jtp(){
     const siteName = 'jtp';
     try{
@@ -199,14 +203,23 @@ async function jtp(){
         }
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
+            const chunk = filterPathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+            
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         // 데이터 저장
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
     }catch(error){
         console.error('jtp.getPathIds() 에러 발생: ', error);
     }

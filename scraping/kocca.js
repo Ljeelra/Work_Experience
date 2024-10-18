@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const row = 15;
 const baseUrl ='https://www.kocca.kr/kocca/pims/list.do?menuNo=204104';
 const detailBaseUrl = `https://www.kocca.kr/kocca/pims/view.do?&menuNo=204104&intcNo=`;
@@ -310,6 +311,10 @@ async function fileDownLink(fileUrl) {
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function kocca(){
     const siteName = 'kocca';
     try{
@@ -326,18 +331,26 @@ async function kocca(){
     
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
     
-        
-        const detailDataPromises = filterePathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName).then(data => ({ ...data, site: siteName }))
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
+            const chunk = filterePathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+            
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(5000); // 3초 딜레이 추가
+        }
     
         //console.log(filteredDataResults);
         
     
      //배치로 데이터 저장하는 함수
-    await saveDataInChunks(filteredDataResults, siteName);
+    await saveDataInChunks(detailDataResults, siteName);
     
     } catch(error){
         console.log('kocca() 에러 발생: ',error)

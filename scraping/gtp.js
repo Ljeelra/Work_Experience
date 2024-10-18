@@ -10,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const listUrl = 'https://pms.gtp.or.kr/web/business/webBusinessList.do?';
 const detailBaseUrl = 'https://pms.gtp.or.kr/web/business/webBusinessView.do?b_idx=';
 const pageUnit = 10;
@@ -281,6 +282,10 @@ async function scrapeDetailPage(dataList, siteName){
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function gtp(){
     const siteName = 'gtp';
 
@@ -299,11 +304,17 @@ async function gtp(){
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);      
     
         //상세페이지 스크랩
-        const detailDataPromises = filterePathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
+            const chunk = filterePathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                await delay(3000); // 3초 딜레이 추가
+                return data;
+            }));
+
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+        }
 
         //데이터 결합
         const combinedResults = filteredDataResults.map(detailData => {
@@ -322,7 +333,7 @@ async function gtp(){
         //console.log(combinedResults);
 
         //DB 저장 함수 호출
-        // await saveDataInChunks(combinedResults, siteName);
+        await saveDataInChunks(combinedResults, siteName);
 
     }catch(error){
         console.log('gtp() 에서 에러 발생: ',error);

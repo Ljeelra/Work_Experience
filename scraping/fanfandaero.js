@@ -240,6 +240,10 @@ async function scrapeDetailPage(pathId, siteName){
 
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fanfandaero() {
     const siteName = 'fanfandaero';
     try{
@@ -254,11 +258,12 @@ async function fanfandaero() {
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
 
         //상세페이지 스크랩 함수
-        const deatailDataPromises = filterePathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName).then(data => ({ ...data, site: siteName }))
-        );
-        //데이터 promise.all() 처리
-        const filteredDataResults = await Promise.all(deatailDataPromises);
+        const filteredDataResults = [];
+        for (const pathId of filterePathIds) {
+            const data = await scrapeDetailPage(pathId, siteName);
+            filteredDataResults.push(data);
+            await delay(2000);  // 2초 딜레이 추가
+        }
         
         //db 데이터 저장함수
         await saveDataInChunks(filteredDataResults, siteName);

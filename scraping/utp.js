@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const baseUrl = 'https://www.utp.or.kr/include/contents.php?mnuno=M0000018&menu_group=1&sno=0102&task=list&s_state=1&sear=&page=';
 const detailBaseUrl ='https://www.utp.or.kr/proc/re_ancmt/list.php?task=getItem&_=1728022912998&seq=';
 const axiosInstance = axios.create({
@@ -141,6 +142,10 @@ async function scrapeDetailPage(pathId, siteName){
 
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function utp(){
     const siteName = 'utp';
     try{
@@ -160,14 +165,23 @@ async function utp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         //상세페이지 스크랩
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
+            const chunk = filterPathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+            
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         //DB 저장 함수 호출
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
         console.log('utp()에서 에러가 발생 : ',error);

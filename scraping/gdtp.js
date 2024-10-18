@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const baseUrl = 'https://gdtp.or.kr/sproject/index';
 const detailBaseUrl ='https://gdtp.or.kr/sproject/view/';
 const axiosInstance = axios.create({
@@ -142,6 +143,10 @@ async function scrapeDetailPage(cate, pathId, siteName){
 
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 async function gdtp(){
     const siteName = 'gdtp';
@@ -161,13 +166,22 @@ async function gdtp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         //상세페이지 스크랩
-        const detailDataPromises = filterPathIds.map(pathId => {
-            const index = pathIds.indexOf(pathId); // 해당 pathId의 인덱스 찾기
-            const category = index !== -1 ? cate[index] : null;
-            return scrapeDetailPage(category, pathId, siteName);
-        });
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
+            const chunk = filterPathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const index = pathIds.indexOf(pathId); // 해당 pathId의 인덱스 찾기
+                const category = index !== -1 ? cate[index] : null;
+                const data = await scrapeDetailPage(category, pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+            
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         //DB 저장 함수 호출
         await saveDataInChunks(filteredDataResults, siteName);

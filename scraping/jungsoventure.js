@@ -6,6 +6,7 @@ const baseUrl = 'https://www.smes.go.kr/main/sportsBsnsPolicy';
 const detailBaseUrl = 'https://www.smes.go.kr/main/sportsBsnsPolicy/view';
 const row = 20;
 const chunkSize = 50;
+const chunkSize2 = 10;
 
 //Axioserror: socket hang up 에러, 코드: ECONNRESET
 // Axios 인스턴스 설정
@@ -237,22 +238,6 @@ async function detailData(detailUrl, pathId, category) {
             data.contentImage = JSON.stringify(data.contentImage); 
         }
 
-        // console.log('상세페이지에서 추출된 데이터:', {
-        //     title:data.title,
-        //     pathId:data.pathId,
-        //     category:data.category,
-        //     overview: data.overview,
-        //     supportScale: data.supportScale,
-        //     supportContent: data.supportContent,
-        //     requirement: data.requirement,
-        //     requestStartedOn: data.requestStartedOn,
-        //     requestEndedOn: data.requestEndedOn,
-        //     contact: data.contact,
-        //     announcementFile: data.announcementFile,
-        //     location: data.location,
-        //     contentImage: data.images
-        // });
-
         return data;
 
     }catch(error){
@@ -260,6 +245,10 @@ async function detailData(detailUrl, pathId, category) {
     }
 
 };
+
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function jungsoventure() {
     const siteName = 'jungsoventure';
@@ -286,12 +275,21 @@ async function jungsoventure() {
         console.log(`필터링된 후 데이터 개수: ${newDetailData.length}`);
 
         // 상세 페이지에서 데이터 추출
-        const detailDataPromises = newDetailData.map(async data => {
-            const detail = await detailData(data.detailUrl, data.pathId, data.category);
-            return { ...detail, site: siteName };
-        });
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+
+        for (let i = 0; i < newDetailData.length; i += chunkSize2) {
+            const chunk = newDetailData.slice(i, i + chunkSize2);
+            const chunkPromises = chunk.map(async data => {
+                const detail = await detailData(data.detailUrl, data.pathId, data.category);
+                return { ...detail, site: siteName };
+            });
+
+            const chunkResults = await Promise.all(chunkPromises);
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+
+            // 4초의 딜레이 추가
+            await delay(5000);
+        }
         // DB 삽입 함수
         await saveDataInChunks(filteredDataResults, siteName);
         

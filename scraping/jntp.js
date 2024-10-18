@@ -188,7 +188,9 @@ async function scrapeDetailPage(pathId, siteName){
 
 }
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function jntp(){
     const siteName = 'jntp';

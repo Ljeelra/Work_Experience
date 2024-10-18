@@ -195,6 +195,10 @@ async function scrapeDetailPage(pathId, siteName){
     }
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function btp(){
     const siteName = 'btp';
     try{
@@ -208,14 +212,18 @@ async function btp(){
         }
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        
+        for (const pathId of filterPathIds) {
+            const result = await scrapeDetailPage(pathId, siteName);
+            if (result !== null) {
+                detailDataResults.push(result);
+            }
+            await delay(2000); // 각 요청 사이에 2초 대기
+        }
 
         // 데이터 저장
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
     }catch(error){
 
     }

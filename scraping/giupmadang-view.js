@@ -6,6 +6,7 @@ const baseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/list.do
 const detailBaseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/';
 const row = 15;
 const chunkSize = 50;
+const chunkSize2 = 10;
 
 //Axioserror: socket hang up 에러, 코드: ECONNRESET
 // Axios 인스턴스 설정
@@ -192,6 +193,10 @@ async function detailData(detailUrl, pathId) {
 
 };
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function giupmadang() {
     const siteName = 'giupmadang';
     try {
@@ -217,14 +222,24 @@ async function giupmadang() {
         console.log(`필터링된 후 데이터 개수: ${newDetailData.length}`);
 
         // 상세 페이지에서 데이터 추출
-        const detailDataPromises = newDetailData.map(async data => {
-            return detailData(data.detailUrl, data.pathId);
-        });
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
+            const chunk = filterPathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+            
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
+        console.log(detailDataResults);
 
-        // DB 삽입 함수
-        await saveDataInChunks(filteredDataResults, siteName);
+        // 데이터 저장
+        await saveDataInChunks(detailDataResults, siteName);
 
     } catch (error) {
         console.error('giupmadang 함수에서 오류 발생:', error);

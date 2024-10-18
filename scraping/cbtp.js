@@ -221,6 +221,9 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
 
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function cbtp(){
     const siteName= 'cbtp';
@@ -242,15 +245,18 @@ async function cbtp(){
     
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-        // //상세페이지 스크랩
-        const detailDataPromises = filterPathIds.map((pathId, index) =>
-            scrapeDetailPage(detailUrls[index], pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        //상세페이지 스크랩
+        const detailDataResults = [];
+        for (const [index, pathId] of filterPathIds.entries()) {
+            const data = await scrapeDetailPage(detailUrls[index], pathId, siteName);
+            if (data !== null) {
+                detailDataResults.push(data);
+            }
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         //DB 저장
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
         console.log(`gwtp()에서 에러,${error.message}: `,error)

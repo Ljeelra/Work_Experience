@@ -219,7 +219,7 @@ async function scrapeDetailPage(pathId, siteName){
     }
 }
 
-function delay(ms) {
+async function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -258,16 +258,16 @@ async function gbsa(){
                 if (data !== null) {
                     return data;
                 }
-                await delay(3000); // 3초 딜레이 추가
                 return null;
             }));
-
+            
             detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
         }
-        console.log(detailDataResults);
+        //console.log(detailDataResults);
 
         // 데이터 저장
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
     
     } catch(error){
         console.log('gbsa() 에러 발생: ',error)

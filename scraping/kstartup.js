@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const row = 15;
 const baseUrl = 'https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do';
 const postUrl = 'https://www.k-startup.go.kr/web/module/bizpbanc-ongoing_bizpbanc-inquiry-ajax.do?'
@@ -105,7 +106,6 @@ async function getPagePathId(payload) {
             let dataFound = false;
             $('ul .notice').each((index, element) => {
                 const href = $(element).find('div.right > div.middle > a').attr('href');
-                console.log('여기에 들어가긴 하나?');
                 if (href) {
                     const regex = /javascript:go_view\((\d+)\)/;
                     const match = href.match(regex);
@@ -313,14 +313,16 @@ async function kstartup(){
     console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
     
     const detailDataResults = [];
-        for (const pathId of filterePathIds) {
-            const data = await scrapeDetailPage(pathId, siteName); // 각 pathId에 대해 데이터 요청
-            if (data !== null) {
-                detailDataResults.push({ ...data, site: siteName }); // 데이터가 null이 아닐 경우 저장
-            }
-            await delay(5000); // 5초 딜레이 추가
-        }    
-    console.log(`${detailDataResults.length}개의 데이터를 수집하였습니다.`);
+    for (let i = 0; i < filterePathIds.length; i += chunkSize) {
+        const chunk = filterePathIds.slice(i, i + chunkSize);
+        const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+            const data = await scrapeDetailPage(pathId, siteName); 
+            return data !== null ? { ...data, site: siteName } : null; 
+        }));
+
+        detailDataResults.push(...chunkResults.filter(data => data !== null)); 
+        await delay(5000); // 5초 딜레이 추가
+    }
     
     //배치로 데이터 저장하는 함수
     await saveDataInChunks(detailDataResults, siteName);

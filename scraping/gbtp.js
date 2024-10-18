@@ -10,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const listUrl = 'https://www.gbtp.or.kr/user/board.do';
 const detailBaseUrl = 'https://www.gbtp.or.kr/user/boardDetail.do';
 const row = 10;
@@ -247,6 +248,10 @@ async function scrapeDetailPage(pathId, siteName){
 
 }
 
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function gbtp(){
     const siteName = 'gbtp';
     try{
@@ -262,14 +267,23 @@ async function gbtp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         //상세페이지 스크랩
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
+            const chunk = filterPathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const data = await scrapeDetailPage(pathId, siteName);
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+            
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         //DB 저장 함수 호출
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
         console.log('gbtp()에서 에러가 발생 : ',error);

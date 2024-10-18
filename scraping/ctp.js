@@ -157,7 +157,9 @@ async function scrapeDetailPage(dataList, siteName){
 }
 
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function ctp(){
     const siteName = 'ctp';
@@ -187,11 +189,15 @@ async function ctp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         //상세페이지 추출
-        const detailDataPromises = filterPathIds.map(pathId => 
-            scrapeDetailPage(pathId, siteName)
-        );
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const filteredDataResults = []; // 결과를 저장할 배열 초기화
+
+        for (const pathId of filterPathIds) {
+            const data = await scrapeDetailPage(pathId, siteName);
+            if (data !== null) {
+                filteredDataResults.push(data);
+            }
+            await delay(2000); // 2초 딜레이 추가
+        }
 
 
         //데이터 저장

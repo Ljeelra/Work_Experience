@@ -204,7 +204,7 @@ async function giba(){
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             detailDataResults.push(data);
-            await delay(500); // 각 요청 후 0.5초 대기
+            await delay(1000); // 각 요청 후 0.5초 대기
         }
         const filteredDataResults = detailDataResults.filter(data => data !== null);
 

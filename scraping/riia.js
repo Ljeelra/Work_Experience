@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const row = 15;
 
 const listurl = 'https://www.riia.or.kr/';
@@ -187,10 +188,14 @@ async function getDetailedData(detailUrl, pathId, headers){
 
 let locCode= [];
 
+
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function riia(){
     const siteName = 'riia';
     try{
-        //https://www.riia.or.kr/ 여기서 각 지역코드 추출하고 locCode에 저장
         //추출한 지역코드로 해당 지역 공고 사이트 들어가는 url 생성
         locCode = await getlocCode();
         //console.log(locCode);
@@ -232,23 +237,27 @@ async function riia(){
                 console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
                 
             //상세페이지에서 db에 삽입할 데이터 return받고 return받은 데이터에 추출했던 유니크키랑 접수기간, 공고일 데이터 합치기
-            const detailedDataPromises = filterePathIds.map(async (data) => {
-                const detailUrl = `${regionUrl}/view/${data.pathId}`;
-                //console.log('detailUrl 체크:' + detailUrl);
-                return getDetailedData(detailUrl, data.pathId, headers)
-                    .then(detailedData => ({
+            const detailedDataResults = [];
+            for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
+                const chunk = filterePathIds.slice(i, i + chunkSize2);
+                const chunkResults = await Promise.all(chunk.map(async (data) => {
+                    const detailUrl = `${regionUrl}/view/${data.pathId}`;
+                    //console.log('detailUrl 체크:' + detailUrl);
+                    const detailedData = await getDetailedData(detailUrl, data.pathId, headers);
+                    return detailedData ? {
                         ...detailedData,
                         ...data,
                         site: siteName,
                         location: code
-                    }));
-            });
+                    } : null;
+                }));
 
-            const detailedDataResults = await Promise.all(detailedDataPromises);
-            //console.log('상세 데이터 결과:', detailedDataResults);
-            const filteredDataResults = detailedDataResults.filter(data => data !== null);
+                detailedDataResults.push(...chunkResults.filter(data => data !== null));
+                await delay(3000); // 3초 딜레이 추가
+            }
+
             //db저장함수 호출
-            await saveDataInChunks(filteredDataResults, siteName);
+            await saveDataInChunks(detailedDataResults, siteName);
             }
         }
     

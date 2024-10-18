@@ -51,7 +51,9 @@ axiosRetry(axiosInstance, {
     },
 });
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function filterPathId(scrapedData, siteName) {
     try {
@@ -292,11 +294,11 @@ async function jba(){
                 if (data !== null) {
                     return data;
                 }
-                await delay(3000); // 3초 딜레이 추가
                 return null;
             }));
-
+            
             detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
         }
 
         // 데이터 저장
