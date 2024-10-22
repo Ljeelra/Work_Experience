@@ -223,8 +223,8 @@ async function giupmadang() {
 
         // 상세 페이지에서 데이터 추출
         const detailDataResults = [];
-        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
-            const chunk = filterPathIds.slice(i, i + chunkSize2);
+        for (let i = 0; i < newDetailData.length; i += chunkSize2) {
+            const chunk = newDetailData.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
                 const data = await scrapeDetailPage(pathId, siteName);
                 if (data !== null) {

@@ -37,7 +37,10 @@ const axiosInstance = axios.create({
 async function getTotalPage() {
     let browser;
     try {
-        browser = await puppeteer.launch({ headless: true });
+        browser = await puppeteer.launch({ 
+            headless: true, 
+            timeout:30000,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']});
         const page = await browser.newPage();
         await page.goto(baseUrl);
         await page.waitForSelector('ul.pagination');
@@ -137,12 +140,13 @@ async function scrapeDetails(url, page) {
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
         await page.setViewport({ width: 1280, height: 800 });
 
-        await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
-        console.log('상세페이지 스크랩 시작합니다.');
-
         await page.setRequestInterception(true);
-        await page.waitForSelector('div.form-group ', { timeout: 30000 });
-        await page.waitForFunction(() => document.readyState === 'complete', { timeout: 30000 });
+        console.log('상세페이지 스크랩 시작합니다.');
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+        await await new Promise((page) => setTimeout(page, 500));
+        console.log('상세페이지 로드 완료');
+        await page.waitForSelector('div.form-group ', { visible: true, timeout: 90000 });
+        await page.waitForFunction(() => document.readyState === 'complete', { timeout: 60000 });
 
         const result = await page.evaluate((pageUrl) => {
             const data = {
@@ -316,34 +320,23 @@ async function scrapeDetails(url, page) {
     }
 }
 
-
-
 //상세페이지 멀티스크랩
 async function scrapeMultipleDetails(urls) {
-    const browser = await puppeteer.launch({ headless: true });
+    let browser = await puppeteer.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']});
     const pagePromises = [];
-    
-    for (let i = 0; i < urls.length; i += maxConcurrentPages) {
-        // 현재 청크에 해당하는 URL들을 가져옵니다.
-        const chunk = urls.slice(i, i + maxConcurrentPages);
-        
-        // 현재 청크의 URL들을 처리하는 프로미스를 생성합니다.
-        const chunkPromises = chunk.map(async (url) => {
-            const page = await browser.newPage();
-            try {
-                const result = await scrapeDetails(url, page);
-                return result;
-            } catch (error) {
-                console.error(`Error scraping ${url}:`, error);
-                return null;
-            } finally {
-                await page.close();
-            }
-        });
-        
-        // 현재 청크의 모든 프로미스가 완료될 때까지 기다립니다.
-        const chunkResults = await Promise.all(chunkPromises);
-        pagePromises.push(...chunkResults);
+    for (const url of urls) {
+        const page = await browser.newPage();
+        try {
+            const result = await scrapeDetails(url, page);
+            pagePromises.push(result); // 결과를 수집합니다.
+        } catch (error) {
+            console.error(`Error scraping ${url}:`, error);
+            pagePromises.push(null); // 에러가 발생하면 null을 추가합니다.
+        } finally {
+            await page.close(); // 페이지를 닫습니다.
+        }
     }
     
     await browser.close();
@@ -359,11 +352,15 @@ async function sosanggonginmadang() {
         const totalPage = await getTotalPage();
         console.log(`총 페이지 수: ${totalPage}`);
 
-        browser = await puppeteer.launch({ headless: true });
+        browser = await puppeteer.launch({ 
+            headless: true, 
+            timeout:0,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+         });
         const page = await browser.newPage();
 
         await page.goto(baseUrl);
-        await page.waitForSelector('table.q-table tbody');
+        await page.waitForSelector('table.q-table tbody', { visible: true, timeout: 30000 });
         const allLinks = [];
         let shouldStop = false; // 페이지 스크래핑 종료 플래그
 
@@ -411,13 +408,12 @@ async function sosanggonginmadang() {
         
         //pathId 중복체크
         const filteredData = await filterPathId(allData, siteName);
-
         if (filteredData.length === 0) {
             console.log('모든 데이터가 필터링 되었습니다. 새로운 데이터가 없습니다.');
             return;
         }
+        console.log(`필터링 된 ${filteredData.length} 개의 페이지를 스크랩해서 DB에 삽입할 수 있습니다.`);
 
-        console.log(`필터링 후, ${filteredData.length} 개의 페이지를 스크랩해서 DB에 삽입할 수 있습니다.`);
 
         const detailedData = await scrapeMultipleDetails(filteredData.map(data => data.url));
 
@@ -450,5 +446,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//sosanggonginmadang();
+sosanggonginmadang();
 export default sosanggonginmadang;

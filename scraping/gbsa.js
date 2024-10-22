@@ -239,10 +239,11 @@ async function gbsa(){
                 allHref.push(pathId);
             }
         }
+        const hrefIds = [...new Set(allHref)];
         console.log('각 사업별 href 추출이 완료되었습니다.');
-
+        
         //얻은 href 값을 pathId삼아 필터링
-        const filterPathIds = await filterPathId(allHref, siteName);
+        const filterPathIds = await filterPathId(hrefIds, siteName);
         if (filterPathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;

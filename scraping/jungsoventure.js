@@ -291,13 +291,13 @@ async function jungsoventure() {
             await delay(5000);
         }
         // DB 삽입 함수
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
         
         //중복데이터 제거 함수 실행
         await deleteDuplication();
         
     } catch (error) {
-        console.error('giupmadang 함수에서 오류 발생:', error);
+        console.error('jungsoventure 함수에서 오류 발생:', error);
     }
 }
 

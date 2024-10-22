@@ -46,7 +46,10 @@ axiosRetry(axiosInstance, {
         return retryCount * 1000; // 재시도 간격 (밀리초)
     },
     retryCondition: (error) => {
-        return error.code === 'ECONNABORTED' || error.response.status >= 500;
+        if (error.code === 'ECONNABORTED' || (error.response && error.response.status >= 500)) {
+            return true;
+        }
+        return false;
     },
 });
 
@@ -314,7 +317,7 @@ async function gepa(){
             await delay(3000); // 3초 딜레이 추가
         }
 
-        // //DB 저장 함수 호출
+        //DB 저장 함수 호출
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){

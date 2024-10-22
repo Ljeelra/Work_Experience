@@ -14,7 +14,7 @@ export async function saveDetail(data, siteName) {
     
         const insertPromises = data.map(async (entry, index) => {
             if (!entry || typeof entry !== 'object') {
-                console.error(`Invalid entry at index ${index}:`, entry);
+                console.error(`Invalid entry at index ${entry.site}, ${index}:`, entry);
                 return; // 잘못된 데이터는 건너뜁니다.
             }
         
@@ -71,7 +71,7 @@ export async function saveDetail(data, siteName) {
             try {
                 await executeQuery(insertQuery, values);
             } catch (error) {
-                console.error(`Error inserting entry at index ${index}:`, error);
+                console.error(`Error inserting entry at ${entry.site} index ${index}:`, error);
             }
         });
         

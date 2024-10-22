@@ -137,7 +137,7 @@ async function scrapeDetailPage(cate, pathId, siteName){
         return data;
         } catch(error){
             //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
+            console.error(`gdtp.scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
             
         }
 
@@ -184,10 +184,10 @@ async function gdtp(){
         }
 
         //DB 저장 함수 호출
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('utp()에서 에러가 발생 : ',error);
+        console.log('gdtp()에서 에러가 발생 : ',error);
     }
 }
 

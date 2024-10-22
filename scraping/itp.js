@@ -37,7 +37,7 @@ axiosRetry(axiosInstance, {
     retries: MAX_RETRIES,
     retryDelay: (retryCount) => {
         console.log(`재시도 횟수: ${retryCount}`);
-        return retryCount * 2000; // 재시도 간격 (밀리초)
+        return retryCount * 5000; // 재시도 간격 (밀리초)
     },
     retryCondition: (error) => {
         if (!error.response) {
@@ -270,5 +270,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//itp();
+itp();
 export default itp;

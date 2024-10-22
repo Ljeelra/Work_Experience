@@ -158,6 +158,10 @@ async function processInBatches(array, batchSize, asyncCallback) {
     return result;
 }
 
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function sba(){
     const siteName = 'sba';
     try{

@@ -10,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const baseUrl = 'https://www.jejutp.or.kr/board/business/list?keyword=&size=30&businessDiv=&page=';
 const detailBaseUrl = 'https://www.jejutp.or.kr/board/business/detail/json/';
 const row = 10;

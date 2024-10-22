@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const listUrl = 'https://www.jbtp.or.kr/board/list.jbtp?boardId=BBS_0000006&menuCd=DOM_000000102001000000';
 const detailBaseUrl = 'https://www.jbtp.or.kr/board/view.jbtp?menuCd=DOM_000000102001000000&boardId=BBS_0000006&dataSid=';
 const MAX_RETRIES = 3;
@@ -288,7 +289,7 @@ async function jbtp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('itp()에서 에러가 발생 : ',error);
+        console.log('jbtp()에서 에러가 발생 : ',error);
     }
 }
 

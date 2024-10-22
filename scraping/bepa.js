@@ -71,7 +71,7 @@ async function getPathIds(listUrl){
     let page = 1;
     while (true) {
         try {
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const url =`${listUrl}${page}`
             //console.log(url);
             const response = await axiosInstance.get(url);
@@ -282,7 +282,6 @@ async function bepa(){
                     console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
                     continue; // 변경된 부분: continue로 다음 no로 넘어감
                 }
-
                 console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
 
                 //상세페이지 스크랩
