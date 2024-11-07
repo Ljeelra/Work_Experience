@@ -37,7 +37,7 @@ async function getPathid() {
 
     while (true) {
         try {
-            console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
+            //console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
             
             const response = await axiosInstance.post(listUrl, {
                 pageIndex: pageIndex,
@@ -93,9 +93,16 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('fanfandaero Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
+}
+
+async function formatDate(dateString) {
+    const year = dateString.slice(0, 4);
+    const month = dateString.slice(4, 6); 
+    const day = dateString.slice(6, 8); 
+    return `${year}-${month}-${day}`;
 }
 
 async function scrapeDetailPage(pathId, siteName){
@@ -138,8 +145,10 @@ async function scrapeDetailPage(pathId, siteName){
         data.title = json.resultSummaryList.sprtBizNm;
         data.category = json.resultSummaryList.sprtBizTyNm;
         data.projectType = json.resultSummaryList.sprtBizCg1Nm;
-        data.requestStartedOn = json.resultSummaryList.rcritBgngYmd;
-        data.requestEndedOn = json.resultSummaryList.rcritEndYmd;
+        const startDateString = json.resultSummaryList.rcritBgngYmd;
+        const endDateString = json.resultSummaryList.rcritEndYmd;
+        data.requestStartedOn = await formatDate(startDateString);
+        data.requestEndedOn = await formatDate(endDateString);
         data.location = '전국';
 
         const detailUrl2='https://fanfandaero.kr/portal/selectSprtBizPbancDetailInfoList.do';
@@ -235,7 +244,7 @@ async function scrapeDetailPage(pathId, siteName){
 
     return data;
     }catch(error){
-        console.log('상세페이지스크랩 중 에러 발생', error);
+        console.error('fanfandaero.상세페이지스크랩 중 에러 발생', error);
     }
 
 }
@@ -259,6 +268,7 @@ async function fanfandaero() {
 
         //상세페이지 스크랩 함수
         const filteredDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterePathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             filteredDataResults.push(data);
@@ -270,7 +280,7 @@ async function fanfandaero() {
     
 
     } catch(error){
-        console.log('fanfandaero() 에러 발생', error);
+        console.error('fanfandaero() 에러 발생', error);
     }
 }
 
