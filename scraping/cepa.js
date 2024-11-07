@@ -62,7 +62,7 @@ async function getNo() {
         });
         return menu;
     } catch(error){
-        console.log('getNo() 에러 발생 : ',error);
+        console.error('cepa.getNo() 에러 발생 : ',error);
     }   
 }
 
@@ -88,7 +88,7 @@ async function getTotalPage(listUrl){
             console.log('페이지 정보를 찾을 수 없습니다.');
         }
     } catch (error) {
-        console.error('getTotalPages()에서 에러가 발생:', error);
+        console.error('cepa.getTotalPages()에서 에러가 발생:', error);
         return 0;
     }
 }
@@ -99,7 +99,7 @@ async function getPathIds(listUrl){
     const totalPage = await getTotalPage(listUrl);
     while (page <= totalPage) {
         try {
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const url =`${listUrl}${page}`
             //console.log(url);
             const response = await axiosInstance.get(url);
@@ -144,7 +144,7 @@ async function getPathIds(listUrl){
             //console.log('현재까지 추출된 pathIds:', pathIds);
             page++;
         } catch (error) {
-            console.log('getPathIds() 에러 발생: ', error);
+            console.error('cepa.getPathIds() 에러 발생: ', error);
             break; // 에러 발생 시 루프 중단
         }
     }
@@ -257,7 +257,7 @@ async function scrapeDetailPage(detailUrl, pathId, no, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`cepa.scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -289,6 +289,7 @@ async function cepa(){
 
                 //상세페이지 스크랩
                 const detailDataResults = [];
+                console.log(`상세페이지 스크랩 시작합니다`);
                 for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
                     const chunk = filterePathIds.slice(i, i + chunkSize2);
                     const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -316,7 +317,7 @@ async function cepa(){
         }
     
     } catch(error){
-        console.log('bepa() 에러 발생: ',error)
+        console.error('cepa() 에러 발생: ',error)
     }
 }
 

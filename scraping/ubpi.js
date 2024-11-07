@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const chunkSize = 50;
+const chunkSize2 = 10;
 const baseUrl = 'https://www.ubpi.or.kr/sub/?mcode=';
 const row = 10;
 const axiosInstance = axios.create({
@@ -55,7 +56,7 @@ async function getNo() {
         });
         return menu;
     } catch(error){
-        console.log('getNo() 에러 발생 : ',error);
+        console.error('ubpi getNo() 에러 발생 : ',error);
     }   
 }
 
@@ -81,7 +82,7 @@ async function getPathIds(listUrl){
 
         return pathIds;
     }catch(error){
-        console.log('getPathIds() 에러 발생 : ',error);
+        console.error('ubpi getPathIds() 에러 발생 : ',error);
     }
 }
 
@@ -97,7 +98,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('ubpi Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }    
@@ -156,7 +157,7 @@ async function scrapeDetailPage(onlyPathId, siteName, menuNo){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`ubpi scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -191,18 +192,28 @@ async function ubpi(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
         //console.log(filterPathIds);
 
-        const detailDataPromises = filterPathIds.map(pathId => {
-            const [menuNo, onlyPathId] = pathId.split(':'); // menuNo와 pathId 분리
-            return scrapeDetailPage(onlyPathId, siteName, menuNo); // 필요시 menuNo도 함께 전달
-        });
-        const detailDataResults = await Promise.all(detailDataPromises);
-        const filteredDataResults = detailDataResults.filter(data => data !== null);
+        const detailDataResults = [];
+        console.log(`상세페이지 스크랩을 시작합니다`);
+        for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
+            const chunk = filterPathIds.slice(i, i + chunkSize2);
+            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
+                const [menuNo, onlyPathId] = pathId.split(':'); // menuNo와 pathId 분리
+                const data = await scrapeDetailPage(onlyPathId, siteName, menuNo); // 필요시 menuNo도 함께 전달
+                if (data !== null) {
+                    return data;
+                }
+                return null;
+            }));
+        
+            detailDataResults.push(...chunkResults.filter(data => data !== null));
+            await delay(3000); // 3초 딜레이 추가
+        }
 
         // 데이터 저장
-        await saveDataInChunks(filteredDataResults, siteName);
+        await saveDataInChunks(detailDataResults, siteName);
     
     } catch(error){
-        console.log('bepa() 에러 발생: ',error)
+        console.error('ubpi() 에러 발생: ',error)
     }
 }
 
@@ -224,5 +235,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//ubpi();
+ubpi();
 export default ubpi;

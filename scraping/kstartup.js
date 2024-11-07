@@ -85,7 +85,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('kstartup Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -97,7 +97,7 @@ async function getPagePathId(payload) {
 
     while (true) {
         try {
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const response = await axiosInstance.post(`${postUrl}page=${page}`, {...payload});
             const html = response.data;
             const $ = cheerio.load(html);
@@ -278,7 +278,7 @@ async function scrapeDetailPage(pathId, siteName){
         return data;
 
     } catch(error){
-        console.error(`Error scraping detail page for pathId ${pathId}:`, error);
+        console.error(`kstartup Error scraping detail page for pathId ${pathId}:`, error);
     }
 }
 
@@ -313,6 +313,7 @@ async function kstartup(){
     console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
     
     const detailDataResults = [];
+    console.log(`상세페이지 스크랩 시작합니다`);
     for (let i = 0; i < filterePathIds.length; i += chunkSize) {
         const chunk = filterePathIds.slice(i, i + chunkSize);
         const chunkResults = await Promise.all(chunk.map(async (pathId) => {

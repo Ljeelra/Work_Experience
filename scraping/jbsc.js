@@ -55,7 +55,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const listUrl = `${baseUrl}${page}`;
             const response = await axiosInstance.get(listUrl);
             const $ = cheerio.load(response.data);
@@ -88,7 +88,7 @@ async function getPathIds(){
             //console.log(pathIds);
             page++;
         } catch(error){
-            console.log('jbsc.getPathIds() 에러 발생: ',error);
+            console.error('jbsc.getPathIds() 에러 발생: ',error);
         }
 
     }
@@ -244,7 +244,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`jbsc scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -266,6 +266,7 @@ async function jbsc(){
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
 
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -283,7 +284,7 @@ async function jbsc(){
         // 데이터 저장
         await saveDataInChunks(detailDataResults, siteName);
     }catch(error){
-
+        console.error(`jbsc() 에러: ${error.message}`, error);
     }
 }
 

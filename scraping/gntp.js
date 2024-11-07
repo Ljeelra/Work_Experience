@@ -45,7 +45,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             
             const response = await axiosInstance.post(listUrl,{pageIndex:page, ing:'checked'});
             const decodedHtml = iconv.decode(Buffer.from(response.data), 'UTF-8')
@@ -68,7 +68,7 @@ async function getPathIds(){
             });       
             
             if (!dataFound) {
-                console.log('pathId 추출이 종료되었습니다.');
+                console.error('gntp pathId 추출이 종료되었습니다.');
                 break;
             }
     
@@ -208,7 +208,7 @@ async function scrapeDetailPage(pathIds, siteName){
             //console.log(data);
             return data;
         } catch(error){
-            console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
+            console.log(`gntp scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
             retries++;
             if (retries < MAX_RETRIES) {
                 console.log(`재시도 중... (${retries}/${MAX_RETRIES})`);
@@ -242,6 +242,7 @@ async function gntp(){
 
         //상세페이지 스크랩
         const filteredDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             if (data !== null) {
@@ -254,7 +255,7 @@ async function gntp(){
         await saveDataInChunks(filteredDataResults, siteName);
 
     } catch(error){
-        console.log('itp()에서 에러가 발생 : ',error);
+        console.error('gntp()에서 에러가 발생 : ',error);
     }
 }
 

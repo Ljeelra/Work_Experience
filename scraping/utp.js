@@ -43,7 +43,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const listUrl = `https://www.utp.or.kr/proc/re_ancmt/list.php?task=list&s_state=1&sear=&_=1728021840236&page=${page}`;
             const response = await axiosInstance.get(listUrl);
             const jsonData = response.data;
@@ -68,7 +68,7 @@ async function getPathIds(){
             //console.log(pathIds);
             page++;
         } catch(error){
-            console.log('utp/getListPathIds() 에러 발생: ',error);
+            console.error('utp getListPathIds() 에러 발생: ',error);
             break;
         }
 
@@ -137,7 +137,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(dataList);
     return dataList;
     }catch(error){
-        console.log('상세페이지스크랩 중 에러 발생', error);
+        console.error('utp 상세페이지스크랩 중 에러 발생', error);
     }
 
 }
@@ -166,6 +166,7 @@ async function utp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -184,7 +185,7 @@ async function utp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('utp()에서 에러가 발생 : ',error);
+        console.error('utp()에서 에러가 발생 : ',error);
     }
 }
 

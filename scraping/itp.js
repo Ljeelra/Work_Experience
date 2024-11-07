@@ -2,12 +2,19 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const chunkSize = 50;
 const chunkSize2 = 10;
 const listUrl = 'https://www.itp.or.kr/intro.asp?tmid=13';
 const detailBaseUrl = 'https://www.itp.or.kr/intro.asp?tmid=13&seq=';
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
 const row = 10;
 const axiosInstance = axios.create({
     timeout: 90000, // 60초 타임아웃
@@ -59,7 +66,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('itp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -80,7 +87,7 @@ async function getTotalPages(searchPeriod) {
         }
         return totalPages;
     } catch (error) {
-        console.error('getTotalPages()에서 에러가 발생:', error);
+        console.error('itp getTotalPages()에서 에러가 발생:', error);
         return 0;
     }
 }
@@ -113,7 +120,7 @@ async function getPathIds(searchPeriod) {
         const pathIdsArrays = await Promise.all(pathIdsPromises);
         return pathIdsArrays.flat();
     } catch (error) {
-        console.error('getPathIds()에서 에러가 발생:', error);
+        console.error('itp getPathIds()에서 에러가 발생:', error);
         return [];
     }
 }
@@ -130,6 +137,9 @@ async function scrapeDetailPage(pathIds, siteName){
         contentImage: [],
         attachmentFile: []
     };
+    let attempts = 0;
+
+    while (attempts < MAX_RETRIES) {
         try{
             const detailUrl = `${detailBaseUrl}${pathIds}`;
             //console.log(detailUrl);
@@ -138,8 +148,12 @@ async function scrapeDetailPage(pathIds, siteName){
 
             data.title = $('h5.view_title span').text().trim();
             if (!data.title) {
-                console.warn(`제목을 찾을 수 없습니다. pathId: ${data.pathId}`);
+                console.warn(`제목을 찾을 수 없습니다. pathId: ${data.pathId}. 다시 시도합니다...`);
+                attempts++;
+                await delay(5000);
+                continue; 
             }
+
             data.announcementDate = $('div.dl_sub_view dd.vdd').eq(1).text().trim();
             data.department = $('div.dl_sub_view dd.vdd').eq(2).text().trim();
             data.requestEndedOn = $('div.dl_sub_view dd.vdd').eq(4).text().trim();
@@ -167,23 +181,50 @@ async function scrapeDetailPage(pathIds, siteName){
             //본문 글 or 이미지
             const board = $('div.editor');
             const imgTags = board.find('img');
-            const maxSrcLength = 5000;
 
-            if(imgTags.length > 0){
+            if (imgTags.length > 0) {
                 imgTags.each((index, element) => {
-                    const imgNm = $(element).attr('alt');
+                    const imgNm = $(element).attr('alt') || `image_${data.title}_${index}`;
                     const imgSrc = $(element).attr('src');
-                    if (imgSrc && imgSrc.length < maxSrcLength) {
-                        if (imgSrc.startsWith('/')) {
-                            data.contentImage.push({imgNm: imgNm, img: `http://www.ctp.or.kr${imgSrc}`});
+            
+                    if (imgSrc) {
+                        const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
+                        if (base64Match) {
+                            const imageDir = path.join(__dirname, 'images', 'itpimages'); // 이미지 디렉토리
+                            fs.ensureDirSync(imageDir); // 디렉토리 존재 확인 및 생성
+                            try {
+                                const buffer = Buffer.from(base64Match[2], 'base64'); // Base64 디코딩
+                                const now = new Date();
+                                const year = now.getFullYear(); 
+                                const month = String(now.getMonth() + 1).padStart(2, '0'); 
+                                const day = String(now.getDate()).padStart(2, '0'); 
+                                const formattedDate = `${year}-${month}-${day}`; 
+                                const safeImgNm = imgNm.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '') // 특수 문자 제거
+                                    .replace(/\s+/g, '_'); // 공백을 _로 변환
+                                const fileName = `${safeImgNm}_${pathIds}_${index}_${formattedDate}.png`; // 이미지 파일 이름
+                                const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
+            
+                                if (!fs.existsSync(filePath)) {
+                                    fs.writeFileSync(filePath, buffer); // 이미지 파일 저장
+                                    data.contentImage.push({ imgNm, img: filePath }); // 이미지 정보 추가
+                                } else {
+                                    console.log(`파일이 이미 존재합니다: ${filePath}`);
+                                }
+                            } catch (error) {
+                                console.error(`Error saving image for ${imgNm}, ${pathIds}:`, error.message);
+                            }
+                        } else if (imgSrc.startsWith('data:image/')) {
+                            console.warn(`Invalid base64 format for image: ${imgNm}`);
                         } else {
-                            // 절대 경로일 경우, 그대로 추가
-                            data.contentImage.push({imgNm: imgNm, img: imgSrc});
+                            // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
+                            const fullImgSrc = imgSrc.startsWith('/') ? `http://www.itp.or.kr${imgSrc}` : imgSrc;
+                            data.contentImage.push({ imgNm, img: fullImgSrc });
                         }
+                    } else {
+                        console.warn(`imgSrc is undefined for element: ${index}`);
                     }
                 });
-                //console.log(data.contentImage);
-            } 
+            }
             const txtArray =[];
             board.find('p').each((index, element) => {
                 const ptext = $(element).text().trim();
@@ -198,9 +239,18 @@ async function scrapeDetailPage(pathIds, siteName){
             //console.log(data);
             return data;
         } catch(error){
-            console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
+            console.error(`itp scrapedetaildata()에서 에러 발생: ${error.message} (URL: ${detailUrl})`, error);
+            attempts++;
+            console.error(`재시도 횟수: ${attempts}`);
+
+            if (attempts >= MAX_RETRIES) {
+                throw new Error(`최대 재시도 횟수를 초과했습니다: ${error.message}`);
+            }
+
+            // 잠시 대기 후 재시도
+            await delay(2000); // 2초 대기
         }
-    
+    }
 }
 
 async function delay(ms) {
@@ -229,6 +279,7 @@ async function itp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -240,7 +291,7 @@ async function itp(){
             }));
             
             detailDataResults.push(...chunkResults.filter(data => data !== null));
-            await delay(3000); // 3초 딜레이 추가
+            await delay(5000); // 5초 딜레이 추가
         }
 
 
@@ -248,7 +299,7 @@ async function itp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('itp()에서 에러가 발생 : ',error);
+        console.error('itp()에서 에러가 발생 : ',error);
     }
 }
 
@@ -270,5 +321,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-itp();
+//itp();
 export default itp;

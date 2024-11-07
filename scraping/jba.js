@@ -81,7 +81,7 @@ async function getListPathIds(){
     let scraping = true;
     while(scraping){
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const formattedDate = `${yyyy}.${mm}.${dd}`;
             const listUrl = `${baseUrl}${page}`
             //console.log(listUrl);
@@ -145,7 +145,7 @@ async function getListPathIds(){
                 page++;
               }
         } catch(error){
-            console.log('getListPathIds()에서 에러 발생',error);
+            console.error('jba getListPathIds()에서 에러 발생',error);
         }
     }
     //console.log('pathIds 출력: ',pathIds);
@@ -261,7 +261,7 @@ async function scrapeDetailPage(pathId, siteName){
         return data;
         
     }catch(error){
-        console.log('상세페이지 스크랩에서 에러: ', error);
+        console.error('jba 상세페이지 스크랩에서 에러: ', error);
     }
 }
 
@@ -287,6 +287,7 @@ async function jba(){
     
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -304,7 +305,7 @@ async function jba(){
         // 데이터 저장
         await saveDataInChunks(detailDataResults, siteName);
     }catch(error){
-        console.log('seoultp() 에서 에러 발생: ',error);
+        console.error('jba() 에서 에러 발생: ',error);
     }
 }
 

@@ -42,7 +42,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const listUrl = `${baseUrl}/index/page/${page}`;
             const response = await axiosInstance.get(listUrl);
             const $ = cheerio.load(response.data);
@@ -75,7 +75,7 @@ async function getPathIds(){
             //console.log(pathIds);
             page++;
         } catch(error){
-            console.log('gtp.getListPathIds() 에러 발생: ',error);
+            console.error('djtp.getListPathIds() 에러 발생: ',error);
         }
 
     }
@@ -142,7 +142,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`djtp.scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -164,6 +164,7 @@ async function djtp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         const filteredDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             if (data !== null) {
@@ -175,7 +176,7 @@ async function djtp(){
         // 데이터 저장
         await saveDataInChunks(filteredDataResults, siteName);
     }catch(error){
-
+        console.error(`djtp() 에러, ${error.message}:`, error);
     }
 }
 

@@ -255,7 +255,7 @@ async function scrapeDetailPage(detailUrl, pathId, no, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`bepa.scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -286,6 +286,7 @@ async function bepa(){
 
                 //상세페이지 스크랩
                 const detailedDataResults = [];
+                console.log(`상세페이지 스크랩 시작합니다`);
                 for (const pathId of filterePathIds) {
                     const detailUrl = `https://www.bepa.kr/kor/view.do?view=view&no=${no}&idx=${pathId}`;
                     await delay(2000);
@@ -309,7 +310,7 @@ async function bepa(){
         }
     
     } catch(error){
-        console.log('bepa() 에러 발생: ',error)
+        console.error('bepa() 에러 발생: ',error)
     }
 }
 

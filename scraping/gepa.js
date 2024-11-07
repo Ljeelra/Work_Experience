@@ -74,7 +74,7 @@ async function getTotalPage(){
             return totalPages || 0; // 페이지 수가 없을 경우 0 반환
         }
     } catch (error) {
-        console.error('getTotalPages()에서 에러가 발생:', error);
+        console.error('gepa getTotalPages()에서 에러가 발생:', error);
         return 0;
     }
 }
@@ -85,7 +85,7 @@ async function getPathIds(){
     const totalPage = await getTotalPage();
     while (page<=totalPage) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const pathUrl = `https://www.gepa.kr/contents/madang/selectMadangbbsList.do?`;
             const response = await axiosInstance.post(pathUrl,{madang_cd: 0, menuId: 223, searchCondition: 'madang_nm', madang_status: 'PRO', pageIndex: page});
             const $ = cheerio.load(response.data);
@@ -114,7 +114,7 @@ async function getPathIds(){
             //console.log(pathIds);
             page++;
         } catch(error){
-            console.log('gntp.getPathIds() 에러 발생: ',error);
+            console.error('gepa.getPathIds() 에러 발생: ',error);
         }
 
     }
@@ -133,7 +133,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('gepa Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -279,7 +279,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`gepa scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -303,6 +303,7 @@ async function gepa(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -321,7 +322,7 @@ async function gepa(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('itp()에서 에러가 발생 : ',error);
+        console.error('gepa()에서 에러가 발생 : ',error);
     }
 }
 

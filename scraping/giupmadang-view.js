@@ -54,7 +54,7 @@ async function getTotalPage() {
         const totalPage = new URL(lastPageLink, baseUrl).searchParams.get('cpage');
         return parseInt(totalPage, 10);
     }catch(error){
-        console.error('Error fetching total pages:', error);
+        console.error('giupmadang Error fetching total pages:', error);
         return 1;
     }
     
@@ -78,7 +78,7 @@ async function filterPathId(scrapedData, siteName) {
 //공고 목록에서 상세페이지 주소 추출하는 함수
 async function scrapeData(cpage) {
     const url = await getPageUrl(cpage);
-    console.log(`${cpage} 페이지 스크랩중입니다.`);
+    //console.log(`${cpage} 페이지 스크랩중입니다.`);
     try {
         const getHtml = await axiosInstance.get(url);
         const $ = cheerio.load(getHtml.data);
@@ -96,7 +96,7 @@ async function scrapeData(cpage) {
 
         return await Promise.all(detailPromises);
     } catch (error) {
-        console.error('Error scraping data:', error);
+        console.error('giupmadang Error scraping data:', error);
         return [];
     }
 }
@@ -188,7 +188,7 @@ async function detailData(detailUrl, pathId) {
         };
 
     }catch(error){
-        console.error('Error fetching detail page', error);
+        console.error('giupmadang Error fetching detail page', error);
     }
 
 };
@@ -223,6 +223,7 @@ async function giupmadang() {
 
         // 상세 페이지에서 데이터 추출
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < newDetailData.length; i += chunkSize2) {
             const chunk = newDetailData.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -242,7 +243,7 @@ async function giupmadang() {
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch (error) {
-        console.error('giupmadang 함수에서 오류 발생:', error);
+        console.error('giupmadang() 오류 발생:', error);
     }
 }
 

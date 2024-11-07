@@ -45,7 +45,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const response = await axiosInstance.post(listUrl, { page: page, acceptState: '2'});
             const $ = cheerio.load(response.data);
 
@@ -95,7 +95,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('jntp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -182,7 +182,7 @@ async function scrapeDetailPage(pathId, siteName){
         return data;
     } catch(error){
         //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-        console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
+        console.error(`jntp scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
         
     }
 
@@ -207,6 +207,7 @@ async function jntp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             detailDataResults.push(data);
@@ -218,7 +219,7 @@ async function jntp(){
         await saveDataInChunks(filteredDataResults, siteName);
 
     } catch(error){
-        console.log('jntp()에서 에러가 발생 : ',error);
+        console.error('jntp()에서 에러가 발생 : ',error);
     }
 }
 

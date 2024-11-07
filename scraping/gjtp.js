@@ -1,7 +1,7 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import https from 'https';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,13 +35,16 @@ const axiosInstance = axios.create({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
+    httpsAgent: new https.Agent({  
+        rejectUnauthorized: false // SSL 인증서 검증 비활성화
+    })
 });
 async function getPathIds(){
     const pathIds = [];
     let pageIndex = 1;
     while (true) {
         try{
-            console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
+            //console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
             const response = await axiosInstance.post(baseUrl,{progress:'ING', pageUnit:30, pageIndex: pageIndex});
             const $ = cheerio.load(response.data);
 
@@ -70,7 +73,7 @@ async function getPathIds(){
             //console.log(pathIds);
             pageIndex++;
         } catch(error){
-            console.log('gtp.getPathIds() 에러 발생: ',error);
+            console.error('gjtp getPathIds() 에러 발생: ',error);
         }
 
     }
@@ -251,7 +254,7 @@ async function gjtp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
-
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId, index) => {
@@ -270,7 +273,7 @@ async function gjtp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log(`gjtp()에서 에러,${error.message}: `,error)
+        console.error(`gjtp()에서 에러,${error.message}: `,error)
     }
 }
 

@@ -43,7 +43,7 @@ async function getPathIds() {
     let page = 1;
     while (true) {
         try {
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const response = await axiosInstance.get(`${baseUrl}/?=&page=${page}`);
             const $ = cheerio.load(response.data);
 
@@ -71,7 +71,7 @@ async function getPathIds() {
 
             page++;
         } catch (error) {
-            console.log('getPathIds() 에러 발생: ', error);
+            console.error('gdtp getPathIds() 에러 발생: ', error);
             break;
         }
     }
@@ -167,6 +167,7 @@ async function gdtp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -187,7 +188,7 @@ async function gdtp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('gdtp()에서 에러가 발생 : ',error);
+        console.error('gdtp()에서 에러가 발생 : ',error);
     }
 }
 

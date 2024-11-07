@@ -56,7 +56,7 @@ async function getPathIds(listUrl){
 
         return pathIds;
     }catch(error){
-        console.log('getPathIds() 에러 발생 : ',error);
+        console.error('djbea.getPathIds() 에러 발생 : ',error);
     }
 }
 
@@ -141,7 +141,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`djbea.scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -171,7 +171,7 @@ async function djbea(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         const filteredDataResults = []; // 결과를 저장할 배열 초기화
-
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             if (data !== null) {
@@ -184,7 +184,7 @@ async function djbea(){
         await saveDataInChunks(filteredDataResults, siteName);
     
     } catch(error){
-        console.log('bepa() 에러 발생: ',error)
+        console.error('djbea() 에러 발생: ',error)
     }
 }
 

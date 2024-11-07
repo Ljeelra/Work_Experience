@@ -1,6 +1,13 @@
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const chunkSize = 50;
 const baseUrl = 'http://www.ctp.or.kr/business/data.do';
@@ -63,7 +70,7 @@ async function getListPathIds(page){
         return pathIds;
 
     } catch(error){
-        console.log('gtp.getListPathIds() 에러 발생: ',error);
+        console.error('ctp.getListPathIds() 에러 발생: ',error);
         if (error.response && error.response.status === 503) {
             await new Promise(resolve => setTimeout(resolve, 5000)); // 5초 대기
             return getListPathIds(page); // 재시도
@@ -109,22 +116,48 @@ async function scrapeDetailPage(dataList, siteName){
 
         const board = $('div.boardContent');
         const imgTags = board.find('img');
-        const maxSrcLength = 5000;
-
-        if(imgTags.length > 0){
+        if (imgTags.length > 0) {
             imgTags.each((index, element) => {
+                const imgNm = $(element).attr('alt') || `image_${data.title}_${index}`;
                 const imgSrc = $(element).attr('src');
-                if (imgSrc && imgSrc.length < maxSrcLength) {
-                    if (imgSrc.startsWith('/')) {
-                        data.contentImage.push(`http://www.ctp.or.kr${imgSrc}`);
+        
+                if (imgSrc) {
+                    const base64Match = imgSrc.match(/^data:image\/(png|jpg|jpeg);base64,(.+)$/);
+                    if (base64Match) {
+                        const imageDir = path.join(__dirname, 'images', 'jejuimages'); // 이미지 디렉토리
+                        fs.ensureDirSync(imageDir); // 디렉토리 존재 확인 및 생성
+                        
+                        try {
+                            const buffer = Buffer.from(base64Match[2], 'base64'); // Base64 디코딩
+                            const now = new Date();
+                            const year = now.getFullYear(); 
+                            const month = String(now.getMonth() + 1).padStart(2, '0'); 
+                            const day = String(now.getDate()).padStart(2, '0'); 
+                            const formattedDate = `${year}-${month}-${day}`; 
+                            const fileName = `${imgNm.replace(/\s+/g, '_')}_${pathId}_${index}_${formattedDate}.png`; // 이미지 파일 이름
+                            const filePath = path.join(imageDir, fileName); // 이미지 파일 경로
+        
+                            if (!fs.existsSync(filePath)) {
+                                fs.writeFileSync(filePath, buffer); // 이미지 파일 저장
+                                data.contentImage.push({ imgNm, img: filePath }); // 이미지 정보 추가
+                            } else {
+                                console.log(`파일이 이미 존재합니다: ${filePath}`);
+                            }
+                        } catch (error) {
+                            console.error(`Error saving image for ${imgNm}:`, error);
+                        }
+                    } else if (imgSrc.startsWith('data:image/')) {
+                        console.warn(`Invalid base64 format for image: ${imgNm}`);
                     } else {
-                        // 절대 경로일 경우, 그대로 추가
-                        data.contentImage.push(imgSrc);
+                        // Base64가 아닐 경우 절대 경로를 사용하여 이미지 src 저장
+                        const fullImgSrc = imgSrc.startsWith('/') ? `http://www.ctp.or.kr${imgSrc}` : imgSrc;
+                        data.contentImage.push({ imgNm, img: fullImgSrc });
                     }
+                } else {
+                    console.warn(`imgSrc is undefined for element: ${index}`);
                 }
             });
-            //console.log(data.contentImage);
-        } 
+        }
         const txtArray =[];
         board.find('p').each((index, element) => {
             const ptext = $(element).text().trim();
@@ -152,7 +185,7 @@ async function scrapeDetailPage(dataList, siteName){
         //console.log(data);
         return data;
     } catch(error){
-        console.log('scrapeDetailPage() 에러 발생: ',error);
+        console.error('ctp.scrapeDetailPage() 에러 발생: ',error);
     }
 }
 
@@ -190,7 +223,7 @@ async function ctp(){
 
         //상세페이지 추출
         const filteredDataResults = []; // 결과를 저장할 배열 초기화
-
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             if (data !== null) {
@@ -203,7 +236,7 @@ async function ctp(){
         //데이터 저장
         await saveDataInChunks(filteredDataResults, siteName);
     } catch(error){
-        console.log('ctp()에러 발생', error);
+        console.error('ctp()에러 발생', error);
     }
 }
 

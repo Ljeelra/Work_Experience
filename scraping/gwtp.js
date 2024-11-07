@@ -65,7 +65,7 @@ async function getPathIds() {
         //console.log(pathIds);
         return pathIds;
     }catch(error){
-        console.error('Error fetching total pages:', error);
+        console.error('gwtp Error fetching total pages:', error);
         return 1;
     }
     
@@ -82,7 +82,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('gwtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -184,7 +184,7 @@ async function scrapeDetailPage(pathId, siteName){
             return data;
         } catch(error){
             //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
+            console.error(`gwtp scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
             
         }
 
@@ -212,6 +212,7 @@ async function gwtp(){
 
         //상세페이지 스크랩
         const filteredDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             if (data !== null) {
@@ -224,7 +225,7 @@ async function gwtp(){
         await saveDataInChunks(filteredDataResults, siteName);
 
     } catch(error){
-        console.log(`gwtp()에서 에러,${error.message}: `,error)
+        console.error(`gwtp()에서 에러,${error.message}: `,error)
     }
 }
 

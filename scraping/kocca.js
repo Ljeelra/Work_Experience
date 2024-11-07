@@ -56,7 +56,7 @@ async function getPagePathId(startPage = 1) {
 
     while (true) {
         try {
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             
             const response = await axiosInstance.get(baseUrl, { params: { pageIndex: page } } );
             const html = response.data;
@@ -252,7 +252,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     } catch(error){
-        console.log('',error);
+        console.error('kocca detail scraping error: ',error);
     }
 }
 
@@ -307,7 +307,7 @@ async function fileDownLink(fileUrl) {
             throw new Error('예상치 못한 응답 형식입니다.');
         }
     } catch (error) {
-        console.error('fileDownLink() 에러:', error);
+        console.error('kocca fileDownLink() 에러:', error);
     }
 }
 
@@ -332,6 +332,7 @@ async function kocca(){
         console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);
     
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -353,7 +354,7 @@ async function kocca(){
     await saveDataInChunks(detailDataResults, siteName);
     
     } catch(error){
-        console.log('kocca() 에러 발생: ',error)
+        console.error('kocca() 에러 발생: ',error)
     }
    
 

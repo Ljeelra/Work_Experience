@@ -43,7 +43,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const listUrl = `${baseUrl}${page}`;
             const response = await axiosInstance.get(listUrl);
             const $ = cheerio.load(response.data);
@@ -76,7 +76,7 @@ async function getPathIds(){
             //console.log(pathIds);
             page++;
         } catch(error){
-            console.log('gtp.getListPathIds() 에러 발생: ',error);
+            console.error('sjtp getListPathIds() 에러 발생: ',error);
         }
 
     }
@@ -94,7 +94,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('sjtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -245,7 +245,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`sjtp scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -267,6 +267,7 @@ async function sjtp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -284,7 +285,7 @@ async function sjtp(){
         // 데이터 저장
         await saveDataInChunks(detailDataResults, siteName);
     }catch(error){
-
+        console.error(`sjtp() 에러: ${error.message}`, error);
     }
 }
 

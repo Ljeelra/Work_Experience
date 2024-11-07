@@ -44,7 +44,7 @@ async function getPathIds(){
     let page = 1;
     while (true) {
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const response = await axiosInstance.post(baseUrl, {param:{P_PAGE_NUM:page, P_PAGING:12, P_ORDER: 'END', P_MENU_ID: '6FA70790-6677-EC11-80E8-9418827691E2'}});
             const jsonData = response.data;
             //console.log(JSON.stringify(response.data, null, 2));
@@ -65,7 +65,7 @@ async function getPathIds(){
             //console.log(pathIds);
             page++;
         } catch(error){
-            console.log('sba.getPathIds() 에러 발생: ',error);
+            console.error('sba.getPathIds() 에러 발생: ',error);
         }
 
     }
@@ -144,7 +144,7 @@ async function scrapeDetailPage(pathId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -175,8 +175,8 @@ async function sba(){
         }
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
-
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {

@@ -215,7 +215,7 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
         return data;
         } catch(error){
             //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
+            console.error(`cbtp.scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
             
         }
 
@@ -247,6 +247,7 @@ async function cbtp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const [index, pathId] of filterPathIds.entries()) {
             const data = await scrapeDetailPage(detailUrls[index], pathId, siteName);
             if (data !== null) {
@@ -259,7 +260,7 @@ async function cbtp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log(`gwtp()에서 에러,${error.message}: `,error)
+        console.error(`cbtp()에서 에러,${error.message}: `,error)
     }
 }
 

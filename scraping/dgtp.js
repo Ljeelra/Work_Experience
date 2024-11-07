@@ -96,7 +96,7 @@ async function getTotalPages(searchBbsState) {
             return totalPages || 0; // 페이지 수가 없을 경우 0 반환
         }
     } catch (error) {
-        console.error('getTotalPages()에서 에러가 발생:', error);
+        console.error('dgtp.getTotalPages()에서 에러가 발생:', error);
         return 0;
     }
 }
@@ -123,7 +123,7 @@ async function getPathIds(searchBbsState) {
                 });
                 return pathIds;
             } catch (error) {
-                console.error(`getPathIds(${page})에서 에러가 발생:`, error);
+                console.error(`dgtp.getPathIds(${page})에서 에러가 발생:`, error);
                 return [];
             }
         })(i + 1));
@@ -131,7 +131,7 @@ async function getPathIds(searchBbsState) {
         const pathIdsArrays = await Promise.all(pathIdsPromises);
         return pathIdsArrays.flat();
     } catch (error) {
-        console.error(`getPathIds()에서 에러가 발생:`, error);
+        console.error(`dgtp.getPathIds()에서 에러가 발생:`, error);
         return [];
     }
 }
@@ -171,8 +171,8 @@ async function scrapeDetailPage(pathIds, siteName){
                     case '접수기간':
                       const spanText = td.find('span').text().trim();
                       if (spanText === '상시모집') {
-                        data.requestStartedOn = spanText;
-                        data.requestEndedOn = null;
+                        data.requestStartedOn = null;
+                        data.requestEndedOn = spanText;
                       } else {
                         td.find('span').remove(); // td 내의 span 요소를 제거
                         const removeTdText = td.text().trim();
@@ -272,7 +272,7 @@ async function scrapeDetailPage(pathIds, siteName){
             //console.log(data);
             return data;
         } catch(error){
-            console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
+            console.log(`dgtp.scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
             retries++;
             if (retries < MAX_RETRIES) {
                 console.log(`재시도 중... (${retries}/${MAX_RETRIES})`);
@@ -311,7 +311,8 @@ async function dgtp(){
         console.log(`필터링된 후 데이터 개수: ${filterPathIds.length}`);
 
         //상세페이지 스크랩
-        const filteredDataResults = []; // 결과를 저장할 배열 초기화
+        const filteredDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (const pathId of filterPathIds) {
             const data = await scrapeDetailPage(pathId, siteName);
             if (data !== null) {
@@ -324,7 +325,7 @@ async function dgtp(){
         await saveDataInChunks(filteredDataResults, siteName);
 
     } catch(error){
-        console.log('itp()에서 에러가 발생 : ',error);
+        console.error('dgtp()에서 에러가 발생 : ',error);
     }
 }
 

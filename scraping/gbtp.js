@@ -49,7 +49,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('gbtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -61,7 +61,7 @@ async function getPathid() {
 
     while (true) {
         try {
-            console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
+            //console.log(`${pageIndex}페이지 pathid 추출 시작합니다`);
             
             const response = await axiosInstance.post(listUrl, {
                 pageIndex: pageIndex,
@@ -242,7 +242,7 @@ async function scrapeDetailPage(pathId, siteName){
             return data;
         } catch(error){
             //console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
-            console.error(`scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
+            console.error(`gbtp scrapteDetail()에서 에러 발생: ${data.pathId}`, error)
             
         }
 
@@ -268,6 +268,7 @@ async function gbtp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -286,7 +287,7 @@ async function gbtp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('gbtp()에서 에러가 발생 : ',error);
+        console.error('gbtp()에서 에러가 발생 : ',error);
     }
 }
 

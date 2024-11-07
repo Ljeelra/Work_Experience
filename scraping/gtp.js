@@ -98,7 +98,7 @@ async function getListPathIds(){
     try{
         while(scraping){
             try{
-                console.log(`${page}페이지 pathid 추출 시작합니다`);
+                //console.log(`${page}페이지 pathid 추출 시작합니다`);
                 const listHtml = await axiosInstance.post(listUrl,{page: page, pageUnit: pageUnit});
                 const $ = cheerio.load(listHtml.data);
                 
@@ -134,7 +134,7 @@ async function getListPathIds(){
         //console.log(dataList);
         return dataList;
     } catch(error){
-        console.log('gtp.getListPathIds() 에러 발생: ',error);
+        console.error('gtp.getListPathIds() 에러 발생: ',error);
     }
 
 }
@@ -278,7 +278,7 @@ async function scrapeDetailPage(dataList, siteName){
         console.log(data);
         return data;
     } catch(error){
-        console.log('상세페이지 스크랩에서 에러 발생: ', error);
+        console.error('상세페이지 스크랩에서 에러 발생: ', error);
     }
 }
 
@@ -305,6 +305,7 @@ async function gtp(){
     
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -336,7 +337,7 @@ async function gtp(){
         await saveDataInChunks(combinedResults, siteName);
 
     }catch(error){
-        console.log('gtp() 에서 에러 발생: ',error);
+        console.error('gtp() 에서 에러 발생: ',error);
     }
 }
 

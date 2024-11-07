@@ -72,7 +72,7 @@ async function getListPathIds(){
     let scraping = true;
     while(scraping){
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const formattedDate = `${yyyy}.${mm}.${dd}`;
             //console.log(formattedDate);
             let listUrl = `${baseUrl}&mod=&scode=00000004&page=${page}`;
@@ -133,7 +133,7 @@ async function getListPathIds(){
                 page++;
               }
         } catch(error){
-            console.log('getListPathIds()에서 에러 발생',error);
+            console.error('cba.getListPathIds()에서 에러 발생',error);
         }
     }
     //console.log('pathIds 출력: ',pathIds);
@@ -243,7 +243,7 @@ async function scrapeDetailPage(pathId, siteName){
         return data;
         
     }catch(error){
-        console.log('상세페이지 스크랩에서 에러: ', error);
+        console.error('cba 상세페이지 스크랩에서 에러: ', error);
     }
 }
 
@@ -269,6 +269,7 @@ async function cba(){
     
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -287,7 +288,7 @@ async function cba(){
         await saveDataInChunks(detailDataResults, siteName);
 
     }catch(error){
-        console.log('seoultp() 에서 에러 발생: ',error);
+        console.error('cba() 에서 에러 발생: ',error);
     }
 }
 

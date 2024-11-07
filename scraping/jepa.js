@@ -165,7 +165,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('jepa Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -239,7 +239,7 @@ async function scrapeDetailPage(pathId, menuId, siteName){
         //console.log(data);
         return data;
     }catch(error){
-        console.log(`scrapeDetailPage() 에러: ${error.message}`, error);
+        console.error(`jepa scrapeDetailPage() 에러: ${error.message}`, error);
     }
 }
 
@@ -275,6 +275,7 @@ async function jepa(){
         console.log(`필터링된 후 데이터 개수: ${filteredPathIds.length}`);
 
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filteredPathIds.length; i += chunkSize2) {
             const chunk = filteredPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -294,7 +295,7 @@ async function jepa(){
         await saveDataInChunks(detailDataResults, siteName);
     
     } catch(error){
-        console.log('jepa() 에러 발생: ',error)
+        console.error('jepa() 에러 발생: ',error)
     }
 }
 

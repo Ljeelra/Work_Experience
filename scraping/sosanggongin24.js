@@ -79,7 +79,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(data => !existingPathIds.includes(data.pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('sosanggongin Error fetching existing path IDs:', error);
         return [];
     }
 }
@@ -129,7 +129,7 @@ async function getDetailUrls(page) {
             
         return result;
     } catch (error) {
-        console.error('getDetailUrls 함수에서 오류 발생:', error);
+        console.error('sosanggongin getDetailUrls 함수에서 오류 발생:', error);
         return { links: [], hasApplicationClosed: false };
     }
 }
@@ -315,7 +315,7 @@ async function scrapeDetails(url, page) {
         //console.log('추출된 데이터:', result);
         return result;
     } catch (error) {
-        console.error(`에러 상세페이지 스크랩 함수 from ${url}:`, error);
+        console.error(`sosanggongin 상세페이지 스크랩 에러 from ${url}:`, error);
         return null;
     }
 }
@@ -415,6 +415,7 @@ async function sosanggonginmadang() {
         console.log(`필터링 된 ${filteredData.length} 개의 페이지를 스크랩해서 DB에 삽입할 수 있습니다.`);
 
 
+        console.log(`상세페이지 스크랩 시작합니다`);
         const detailedData = await scrapeMultipleDetails(filteredData.map(data => data.url));
 
         await saveDataInChunks(detailedData, siteName);

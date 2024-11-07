@@ -52,7 +52,7 @@ async function getlocCode() {
         });
         return loclist;
     } catch(error){
-
+        console.error(`riia getlocCode() 에러/${error.message}: `, error);
     }   
 }
 
@@ -115,7 +115,7 @@ async function getpathId(regionUrl, headers) {
 
         return dataList;
     } catch (error) {
-        console.error(`Error fetching data from ${regionUrl}:`, error);
+        console.error(`riia Error fetching data from ${regionUrl}:`, error);
         return [];
     }
 }
@@ -130,7 +130,7 @@ async function filterPathId(allPageData, siteName) {
         }
         return allPageData.filter(data => !existingPathIds.includes(data.pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('riia Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -180,7 +180,7 @@ async function getDetailedData(detailUrl, pathId, headers){
         };
 
     }catch(error){
-        console.error('Error extracting detail data:', error);
+        console.error('riia Error extracting detail data:', error);
         return null;
     }
 
@@ -238,6 +238,7 @@ async function riia(){
                 
             //상세페이지에서 db에 삽입할 데이터 return받고 return받은 데이터에 추출했던 유니크키랑 접수기간, 공고일 데이터 합치기
             const detailedDataResults = [];
+            console.log(`상세페이지 스크랩 시작합니다`);
             for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
                 const chunk = filterePathIds.slice(i, i + chunkSize2);
                 const chunkResults = await Promise.all(chunk.map(async (data) => {
@@ -262,7 +263,7 @@ async function riia(){
         }
     
     } catch(error){
-        console.log('riia() 에러 발생: ',error)
+        console.error('riia() 에러 발생: ',error)
     }
 }
 

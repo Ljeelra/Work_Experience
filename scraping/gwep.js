@@ -53,7 +53,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('gwep Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -72,7 +72,7 @@ async function getListPathIds(){
     let scraping = true;
     while(scraping){
         try{
-            console.log(`${page}페이지 pathid 추출 시작합니다`);
+            //console.log(`${page}페이지 pathid 추출 시작합니다`);
             const formattedDate = `${yyyy}.${mm}.${dd}`;
             //console.log(formattedDate);
     
@@ -134,7 +134,7 @@ async function getListPathIds(){
                 page++;
               }
         } catch(error){
-            console.log('getListPathIds()에서 에러 발생',error);
+            console.error('gwep getListPathIds()에서 에러 발생',error);
         }
     }
     //console.log('pathIds 출력: ',pathIds);
@@ -249,7 +249,7 @@ async function scrapeDetailPage(pathId, siteName){
         return data;
         
     }catch(error){
-        console.log('상세페이지 스크랩에서 에러: ', error);
+        console.error('gwep 상세페이지 스크랩에서 에러: ', error);
     }
 }
 
@@ -273,6 +273,7 @@ async function gwep(){
     
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
             const chunk = filterePathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -290,7 +291,7 @@ async function gwep(){
         // 데이터 저장
         await saveDataInChunks(detailDataResults, siteName);
     }catch(error){
-        console.log('seoultp() 에서 에러 발생: ',error);
+        console.error('gwep() 에서 에러 발생: ',error);
     }
 }
 

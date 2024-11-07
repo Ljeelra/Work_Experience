@@ -61,7 +61,7 @@ async function getTotalPage() {
         const totalPage = new URL(lastPageLink, baseUrl).searchParams.get('curPage');
         return parseInt(totalPage, 10);
     }catch(error){
-        console.error('Error fetching total pages:', error);
+        console.error('jungsoventure Error fetching total pages:', error);
         return 1;
     }
     
@@ -77,7 +77,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(data => !existingPathIds.includes(data.pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('jungsoventure Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -130,7 +130,7 @@ async function scrapeData(curPage) {
 
         return await Promise.all(detailPromises);
     } catch (error) {
-        console.error('Error scraping data:', error);
+        console.error('jungsoventure Error scraping data:', error);
         return [];
     }
 }
@@ -241,7 +241,7 @@ async function detailData(detailUrl, pathId, category) {
         return data;
 
     }catch(error){
-        console.error('Error fetching detail page', error);
+        console.error('jungsoventure Error fetching detail page', error);
     }
 
 };
@@ -276,7 +276,7 @@ async function jungsoventure() {
 
         // 상세 페이지에서 데이터 추출
         const detailDataResults = [];
-
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < newDetailData.length; i += chunkSize2) {
             const chunk = newDetailData.slice(i, i + chunkSize2);
             const chunkPromises = chunk.map(async data => {
@@ -297,7 +297,7 @@ async function jungsoventure() {
         await deleteDuplication();
         
     } catch (error) {
-        console.error('jungsoventure 함수에서 오류 발생:', error);
+        console.error('jungsoventure() 오류 발생:', error);
     }
 }
 

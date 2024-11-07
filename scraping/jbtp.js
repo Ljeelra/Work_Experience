@@ -68,7 +68,7 @@ async function getTotalPages(gubun) {
             return totalPages || 0; // 페이지 수가 없을 경우 0 반환
         }
     } catch (error) {
-        console.error('getTotalPages()에서 에러가 발생:', error);
+        console.error('jbtp getTotalPages()에서 에러가 발생:', error);
         return 0;
     }
 }
@@ -106,7 +106,7 @@ async function getPathIds(gubun) {
         //console.log(pathIdsArrays);
         return pathIdsArrays.flat();
     } catch (error) {
-        console.error(`getPathIds()에서 에러가 발생:`, error);
+        console.error(`jbtp getPathIds()에서 에러가 발생:`, error);
         return [];
     }
 }
@@ -122,7 +122,7 @@ async function filterPathId(scrapedData, siteName) {
         }
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
-        console.error('Error fetching existing path IDs:', error);
+        console.error('jbtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -233,7 +233,7 @@ async function scrapeDetailPage(pathIds, siteName){
             //console.log(data);
             return data;
         } catch(error){
-            console.log(`scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
+            console.error(`jbtp scrapedetaildata()에서 에러 발생:  ${error.message}`, error);
             retries++;
             if (retries < MAX_RETRIES) {
                 console.log(`재시도 중... (${retries}/${MAX_RETRIES})`);
@@ -271,6 +271,7 @@ async function jbtp(){
 
         //상세페이지 스크랩
         const detailDataResults = [];
+        console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < filterPathIds.length; i += chunkSize2) {
             const chunk = filterPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
@@ -289,7 +290,7 @@ async function jbtp(){
         await saveDataInChunks(detailDataResults, siteName);
 
     } catch(error){
-        console.log('jbtp()에서 에러가 발생 : ',error);
+        console.error('jbtp()에서 에러가 발생 : ',error);
     }
 }
 
