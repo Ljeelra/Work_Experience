@@ -5,7 +5,7 @@ export async function saveDetail(data, siteName) {
     if (data.length === 0) return;
 
     const insertQueryTemplate = `
-        INSERT INTO ${siteName} (
+        INSERT INTO site_${siteName} (
             pathId, category, title, year, department, implementingAgency, manager, supportScale, requirement, assistance,
             announcementDate, requestStartedOn, requestEndedOn, overview, applicationProcess, applyMethod, applySite, contact, 
             attachmentFile, contentFile, contentImage, site, location, faq, projectType, businessPeriod, contents, 
@@ -98,7 +98,7 @@ async function isPoolClosed() {
 
 // 중복 체크를 위해 pathId를 받아오자
 export async function getAllPathIds(siteName) {
-    const selectQuery = `SELECT pathId FROM ${siteName}`;
+    const selectQuery = `SELECT pathId FROM site_${siteName}`;
     try {
         const result = await executeQuery(selectQuery);
 
@@ -118,7 +118,7 @@ export async function getAllPathIds(siteName) {
 
 //중소벤처24와 소상공인24 중복 데이터 삭제
 export async function deleteDuplication(){
-    const deleteQuery = `DELETE j FROM jungsoventure j JOIN sosanggongin24 s ON j.pathId = s.pathId`;
+    const deleteQuery = `DELETE j FROM site_jungsoventure j JOIN sosanggongin24 s ON j.pathId = s.pathId`;
     try {
         const result = await executeQuery(deleteQuery);
         console.log(`성공적으로 ${result.affectedRows} 중복 레코드를 삭제하였습니다.`);
@@ -151,6 +151,7 @@ async function executeQuery(query, params = [], timeout = 45000) {
         console.error('Error executing query:', err);
         if (connection) await connection.rollback();
         throw err; // 예외를 상위 호출자에게 전달
+        
     } finally {
         if (connection) connection.release(); // 연결 반환
     }
