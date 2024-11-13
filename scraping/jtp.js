@@ -114,8 +114,8 @@ async function scrapeDetailPage(pathId, siteName){
         data.announcementDate = detailData.anno.receipt_s_date;
         data.department = detailData.anno.subject_dep;
         data.manager = `${detailData.anno.manager_name}(${detailData.anno.manager_cp})`;
-        data.requestStartedOn = detailData.anno.anno_s_date;
-        data.requestEndedOn = `${detailData.anno.anno_e_date} ${detailData.anno.receipt_e_hour}:${detailData.anno.receipt_e_minute}`;
+        data.requestStartedOn = detailData.anno.receipt_s_date;
+        data.requestEndedOn = `${detailData.anno.receipt_e_date} ${detailData.anno.receipt_e_hour}:${detailData.anno.receipt_e_minute}0`;
    
         data.attachmentFile = detailData.anno.fileList.map(file => ({
             fileNm: file.real_file_name,
@@ -245,5 +245,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-
+//jtp();
 export default jtp;

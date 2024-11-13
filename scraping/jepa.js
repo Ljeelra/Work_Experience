@@ -196,8 +196,8 @@ async function scrapeDetailPage(pathId, menuId, siteName){
         let dateTerm = boardBox.find('div.info span').text().trim();
         dateTerm = dateTerm.replace('신청기간 :', '').trim();
         const applyDate = dateTerm.split('~');
-        data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-        data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
+        data.requestStartedOn = applyDate[0]?.trim() || '';
+        data.requestEndedOn = applyDate[1]?.trim() || '';
         const infoText = $('div.info').contents().filter(function() {
             return this.type === 'text';
         }).text().trim();

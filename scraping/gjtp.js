@@ -96,6 +96,15 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
+function extractDate(input) { 
+    const dateMatch = input.match(/\d{4}-\d{2}-\d{2}/); 
+    if (dateMatch) { 
+        return dateMatch[0]; 
+    } else { 
+        throw new Error("Invalid date format"); 
+    }
+}
+
 async function scrapeDetailPage(detailUrl, pathId, siteName){
     const data = {
         pathId: pathId,
@@ -136,8 +145,9 @@ async function scrapeDetailPage(detailUrl, pathId, siteName){
                     case '접수기간':
                         const dateTerm = tdText.replace(/[\n\t]/g, '').replace(/\s+/g, ' ').replace(/[()]/g, '').trim();
                         const applyDate = dateTerm.split('~');
-                        data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-                        data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
+                        const endDateString = applyDate[1].trim();
+                        data.requestStartedOn = applyDate[0].trim();
+                        data.requestEndedOn = extractDate(endDateString);
                         break;
                     case '사업기간':
                         data.businessPeriod = tdText;

@@ -175,9 +175,10 @@ async function scrapeDetailPage(pathId, siteName){
         data.implementingAgency = $('div.mb_area p').contents().filter(function() {
             return this.type === 'text';
         }).text().trim();
-        data.announcementDate = $('div.mb_area div[style="color:#888;"]').contents().filter(function() {
+        const announcementDateString = $('div.mb_area div[style="color:#888;"]').contents().filter(function() {
             return this.type === 'text';
         }).text().trim();
+        data.announcementDate=announcementDateString.replace(/\./g, '-');
 
         const file = $('div#view_file_download_area')
         file.find('a').each((index, element) => {

@@ -111,6 +111,18 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
+function formatKoreanDate(dateString) { 
+    dateString = dateString.replace(/\s+/g, ' ').replace(/\(.*?\)/g, '').trim();
+    const dateMatch = dateString.match(/(\d{4})년\s?(\d{1,2})월\s?(\d{1,2})일/); 
+    if (!dateMatch) { 
+        throw new Error("Invalid date format"); 
+    } 
+    const year = dateMatch[1]; 
+    const month = dateMatch[2].padStart(2, '0');
+    const day = dateMatch[3].padStart(2, '0'); 
+    return `${year}-${month}-${day}`; 
+}
+
 async function scrapeDetailPage(pathId, siteName){
     const data={
         title:null,
@@ -152,8 +164,10 @@ async function scrapeDetailPage(pathId, siteName){
                 const dateTerm = td;
                 const resultDate = dateTerm.replace(/\(.*?\)/g, '').trim();
                 const applyDate = resultDate.split('~');
-                data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-                data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
+                const startDateString = applyDate[0].trim();
+                const endDateString = applyDate[1].trim();
+                data.requestStartedOn = formatKoreanDate(startDateString);
+                data.requestEndedOn = formatKoreanDate(endDateString);
                 break;
               case '담당부서':
                 data.department = td;

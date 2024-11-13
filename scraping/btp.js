@@ -99,6 +99,22 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
+
+function formatDate(dateString) { 
+    const dateMatch = dateString.match(/^\d{4}\.\d{2}\.\d{2}/); 
+    const timeMatch = dateString.match(/\d{2}:\d{2}$/); 
+    if (!dateMatch) { throw new Error("Invalid date format"); } 
+    const datePart = dateMatch[0]; 
+    const timePart = timeMatch ? timeMatch[0] : ''; 
+    const formattedDate = datePart.replace(/\./g, '-'); 
+    return `${formattedDate} ${timePart}`.trim();
+}
+// function formatDate(dateString) { 
+//     const datePart = dateString.match(/^\d{4}\.\d{2}\.\d{2}/)[0]; 
+//     const formattedDate = datePart.replace(/\./g, '-'); 
+//     return formattedDate;
+// }
+
 async function scrapeDetailPage(pathId, siteName){
     const data={
         title:null,
@@ -156,8 +172,10 @@ async function scrapeDetailPage(pathId, siteName){
                     break;
                 case '접 수 기 간':
                     const applyDate = liTxt.split('~');
-                    data.requestStartedOn = applyDate[0].trim();
-                    data.requestEndedOn = applyDate[1].trim();
+                    const startDateString = applyDate[0].trim();
+                    const endDateString = applyDate[1].trim();
+                    data.requestStartedOn = formatDate(startDateString);
+                    data.requestEndedOn = formatDate(endDateString);
                     break;
                 case '문 의 처':
                     data.contact = liTxt.replace(/\n|\t/g, '');
@@ -247,5 +265,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-
+//btp();
 export default btp;

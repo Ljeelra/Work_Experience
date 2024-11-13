@@ -95,6 +95,16 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
+function extractDate(input) { 
+    const dateMatch = input.match(/\d{4}-\d{2}-\d{2}/);
+    if (dateMatch) { 
+        return dateMatch[0];
+     } 
+     else { 
+        throw new Error("Invalid date format"); 
+    }
+}
+
 async function scrapeDetailPage(dataList, siteName){
     const data = {
         pathId: dataList.pathId,
@@ -112,7 +122,8 @@ async function scrapeDetailPage(dataList, siteName){
         const $ = cheerio.load(detailHtml.data);
 
         data.title = $('div.boardTitle').find('h3').text().trim();
-        data.announcementDate = $('div.boardInfo ul').find('li').eq(1).text().trim();
+        const announcementDateString = $('div.boardInfo ul').find('li').eq(1).text().trim();
+        data.announcementDate = extractDate(announcementDateString);
 
         const board = $('div.boardContent');
         const imgTags = board.find('img');
