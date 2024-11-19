@@ -118,7 +118,7 @@ export async function getAllPathIds(siteName) {
 
 //중소벤처24와 소상공인24 중복 데이터 삭제
 export async function deleteDuplication(){
-    const deleteQuery = `DELETE j FROM site_jungsoventure j JOIN sosanggongin24 s ON j.pathId = s.pathId`;
+    const deleteQuery = `DELETE j FROM site_jungsoventure j JOIN site_sosanggongin24 s ON j.pathId = s.pathId`;
     try {
         const result = await executeQuery(deleteQuery);
         console.log(`성공적으로 ${result.affectedRows} 중복 레코드를 삭제하였습니다.`);

@@ -275,7 +275,6 @@ async function scrapeDetailPage(dataList, siteName){
         });
 
 
-        console.log(data);
         return data;
     } catch(error){
         console.error('상세페이지 스크랩에서 에러 발생: ', error);
@@ -295,19 +294,19 @@ async function gtp(){
         console.log(`총 ${dataList.length}개의 pathId가 스크랩되었습니다.`);
     
         //pathId 필터링
-        const filterePathIds = await filterPathId(dataList,siteName);
-        if (filterePathIds.length === 0) {
+        const filteredPathIds = await filterPathId(dataList,siteName);
+        if (filteredPathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
             return;
         }
     
-        console.log(`필터링된 후 데이터 개수: ${filterePathIds.length}`);      
+        console.log(`필터링된 후 데이터 개수: ${filteredPathIds.length}`);      
     
         //상세페이지 스크랩
         const detailDataResults = [];
         console.log(`상세페이지 스크랩 시작합니다`);
-        for (let i = 0; i < filterePathIds.length; i += chunkSize2) {
-            const chunk = filterePathIds.slice(i, i + chunkSize2);
+        for (let i = 0; i < filteredPathIds.length; i += chunkSize2) {
+            const chunk = filteredPathIds.slice(i, i + chunkSize2);
             const chunkResults = await Promise.all(chunk.map(async (pathId) => {
                 const data = await scrapeDetailPage(pathId, siteName);
                 await delay(3000); // 3초 딜레이 추가
@@ -318,9 +317,9 @@ async function gtp(){
         }
 
         //데이터 결합
-        const combinedResults = filteredDataResults.map(detailData => {
+        const combinedResults = detailDataResults.map(detailData => {
             // dataList에서 detailData.pathId에 해당하는 항목 찾기
-            const relatedData = dataList.find(item => item.pathId === detailData.pathId);
+            const relatedData = dataList.find(item => item.pathId.toString() === detailData.pathId.toString());
 
             // 관련 데이터와 상세 데이터를 결합
             return {

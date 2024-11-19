@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import { saveDetail, getAllPathIds } from '../db/db.js';
+import https from 'https';
 import iconv from 'iconv-lite';
 import fs from 'fs-extra';
 import path from 'path';
@@ -36,6 +37,9 @@ const axiosInstance = axios.create({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
     },
     family: 4,
+    httpsAgent: new https.Agent({  
+        rejectUnauthorized: false // SSL 인증서 검증 비활성화
+    })
 });
 
 async function getPathIds() {

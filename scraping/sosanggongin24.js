@@ -280,11 +280,12 @@ async function sosanggonginmadang() {
         let pathIds = [];
         let allIds = await getPathIds(totalPost);
         const uniqueIds = Array.from(new Set(allIds));
-        pathIds = uniqueIds;
+        pathIds = uniqueIds.map(id => id.toString());
         console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
-       
+        console.log(pathIds);
+    
         //pathId 중복체크
-        const filteredData = await filterPathId(uniqueIds, siteName);
+        const filteredData = await filterPathId(pathIds, siteName);
         if (filteredData.length === 0) {
             console.log('모든 데이터가 필터링 되었습니다. 새로운 데이터가 없습니다.');
             return;
@@ -334,5 +335,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-sosanggonginmadang();
+//sosanggonginmadang();
 export default sosanggonginmadang;

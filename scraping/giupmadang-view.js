@@ -86,7 +86,8 @@ async function scrapeData(cpage) {
         const tableRows = table.find('tbody tr');
         const detailPromises = tableRows.map(async (index, list) => {
             const detail = $(list).find('.txt_l > a').attr('href');
-            const detailUrl = detailBaseUrl + detail;
+            const detailUrl = `${detailBaseUrl}${detail}`;
+            //console.log('Detail URL:', detailUrl);
 
             const urlParams = new URLSearchParams(new URL(detailUrl).search);
             const pathId = urlParams.get('pblancId');           
@@ -206,12 +207,12 @@ async function giupmadang() {
         for (let cpage = 1; cpage <= totalPages; cpage++) {
             pagePromises.push(scrapeData(cpage));
         }
-
+        await delay(3000);
         const allDataArrays = await Promise.all(pagePromises);
+        
         const allDetails = allDataArrays.flat();
 
         console.log(`총 ${allDetails.length}개의 상세페이지 URL이 스크랩되었습니다.`);
-
         const newDetailData = await filterPathId(allDetails, siteName);
 
         if (newDetailData.length === 0) {
@@ -226,8 +227,9 @@ async function giupmadang() {
         console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < newDetailData.length; i += chunkSize2) {
             const chunk = newDetailData.slice(i, i + chunkSize2);
-            const chunkResults = await Promise.all(chunk.map(async (pathId) => {
-                const data = await scrapeDetailPage(pathId, siteName);
+            const chunkResults = await Promise.all(chunk.map(async (item) => {
+                const { detailUrl, pathId } = item;
+                const data = await detailData(detailUrl, pathId);
                 if (data !== null) {
                     return data;
                 }
@@ -237,7 +239,6 @@ async function giupmadang() {
             detailDataResults.push(...chunkResults.filter(data => data !== null));
             await delay(3000); // 3초 딜레이 추가
         }
-        console.log(detailDataResults);
 
         // 데이터 저장
         await saveDataInChunks(detailDataResults, siteName);
