@@ -68,7 +68,7 @@ async function fillterPathId(scrapedData, siteName){
         if (!Array.isArray(existingPathIds)) {
             throw new Error('Existing Path IDs is not an array');
         }
-        return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
+        return scrapedData.filter(item => !existingPathIds.includes(item.SEQ));
     } catch (error) {
         console.error('Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
@@ -136,7 +136,6 @@ async function delayTime(ms) {
 }
 
 async function saveDataInChunks(data, siteName) {
-    console.log(data);
     if (!Array.isArray(data)) {
         console.error('Data is not an array:', data);
         throw new Error('Data is not an array');
@@ -157,7 +156,7 @@ async function saveDataInChunks(data, siteName) {
 }
 
 async function creativekorea() {
-    console.log('1111');
+    //console.log('1111');
     const chunkSize = 10;
     const site = 'creativekorea';
     const listUrl = 'https://ccei.creativekorea.or.kr/service/business_list.json';
@@ -187,4 +186,5 @@ async function creativekorea() {
     }
 }
 
+//creativekorea();
 export default creativekorea;
