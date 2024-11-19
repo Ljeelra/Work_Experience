@@ -145,15 +145,15 @@ async function scrapeDetailPage(pathId, siteName){
                     // console.log('분류: '+data.category);
                     break;
                 case '접수시작일':
-                    data.requestStartedOn = span;
+                    data.requestStartedOn = span.replace(/\./g, '-');
                     // console.log('접수시작일: '+data.requestStartedOn);
                     break;
                 case '접수마감일':
-                    data.requestEndedOn = span;
+                    data.requestEndedOn = span.replace(/\./g, '-');
                     // console.log('접수마감일: '+data.requestEndedOn);
                     break;  
                 case '공고일':
-                    data.announcementDate = span;
+                    data.announcementDate = span.replace(/\./g, '-');
                     // console.log('공고일: '+data.announcementDate);
                     break;
                 case '담당자':

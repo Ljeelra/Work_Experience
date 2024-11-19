@@ -160,7 +160,9 @@ async function scrapeDetailPage(pathId, siteName){
         const info = $('table.board_insert.m_board_insert tbody')
         data.title = info.find('tr').eq(0).text().trim();
         //console.log('공고제목: ', data.title);
-        data.announcementDate = info.find('tr').eq(1).find('td').eq(1).text().trim();
+        let date = info.find('tr').eq(1).find('td').eq(1).text().trim();
+        date = date.replace(/\./g, '-');
+        data.announcementDate = date;
         //console.log('공고일: ',data.announcementDate);
 
         const imgbox = $('div.substance');
