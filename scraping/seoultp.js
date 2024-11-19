@@ -148,7 +148,8 @@ async function scrapeDetailPage(pathId, siteName){
 
         data.title = $('table.board-write tbody tr').find('td').eq(0).text().trim();
         //console.log('공고제목: ', data.title);
-        data.announcementDate =  $('table.board-write tbody tr').find('td').eq(2).text().trim();
+        let aDate =  $('table.board-write tbody tr').find('td').eq(2).text().trim();
+        data.announcementDate = aDate.replace(/\./g, '-');
         //console.log('공고일: ',data.announcementDate);
 
         const tableCont = $('div.table-cont');

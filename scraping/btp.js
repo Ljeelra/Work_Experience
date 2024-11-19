@@ -146,7 +146,8 @@ async function scrapeDetailPage(pathId, siteName){
         const dateText = $('.top-txt-box p').eq(1).text();
         const dateMatch = dateText.match(/\d{4}\.\d{2}\.\d{2}/);
         if (dateMatch) {
-            const date = dateMatch[0];
+            let date = dateMatch[0];
+            date = date.replace(/\./g, '-');
             // console.log('추출된 날짜:', date);
             data.announcementDate = date;
         }

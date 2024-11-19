@@ -12,6 +12,7 @@ import btp from './scraping/btp.js';
 import cba from './scraping/cba.js';
 import cbtp from './scraping/cbtp.js';
 import cepa from './scraping/cepa.js';
+import creativekorea from './scraping/creativekorea.js';
 import ctp from './scraping/ctp.js';
 import dgtp from './scraping/dgtp.js';
 import djbea from './scraping/djbea.js';
@@ -25,6 +26,7 @@ import giba from './scraping/giba.js';
 import giupmadang from './scraping/giupmadang-view.js';
 import gjtp from './scraping/gjtp.js';
 import gntp from './scraping/gntp.js';
+import gtp from './scraping/gtp.js';
 import gwep from './scraping/gwep.js';
 import gwtp from './scraping/gwtp.js';
 import itp from './scraping/itp.js';
@@ -50,6 +52,7 @@ const scrapingFunctions = {
     btp: btp,
     cba: cba,
     cbtp: cbtp,
+    creativekorea: creativekorea,
     cepa: cepa,
     ctp: ctp,
     dgtp: dgtp,
@@ -64,6 +67,7 @@ const scrapingFunctions = {
     giupmadang: giupmadang,
     gjtp: gjtp,
     gntp: gntp,
+    gtp: gtp,
     gwep: gwep,
     gwtp: gwtp,
     itp: itp,
@@ -85,8 +89,8 @@ const scrapingFunctions = {
 };
 
 
-const sites = ['bepa', 'btp', 'cba', 'cbtp', 'cepa', 'ctp', 'dgtp', 'djbea', 'fanfandaero', 'gbsa', 'gbtp', 'gdtp', 'gepa', 'giba', 'giupmadang',
-     'gjtp', 'gntp', 'gwep', 'gwtp', 'itp', 'jba', 'jbsc', 'jbtp', 'jepa', 'jntp', 'jungsoventure', 'kocca', 'kstartup', 'riia', 'sba', 'seoultp', 'sjtp', 'sosanggongin24', 'ubpi', 'utp'];
+const sites = ['bepa', 'btp', 'cba', 'cbtp', 'creativekorea', 'cepa', 'ctp', 'dgtp', 'djbea', 'fanfandaero', 'gbsa', 'gbtp', 'gdtp', 'gepa', 'giba', 'giupmadang',
+     'gjtp', 'gntp', 'gtp', 'gwep', 'gwtp', 'itp', 'jba', 'jbsc', 'jbtp', 'jepa', 'jntp', 'jungsoventure', 'kocca', 'kstartup', 'riia', 'sba', 'seoultp', 'sjtp', 'sosanggongin24', 'ubpi', 'utp'];
 
 async function runTasks(tasks, maxConcurrent) {
     const queue = [...tasks];

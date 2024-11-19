@@ -101,7 +101,8 @@ async function getpathId(regionUrl, headers) {
                 const requestPeriod = $(element).find('td').eq(2).text().trim();
                 const [requestStartedOn, requestEndedOn] = requestPeriod.split('~').map(date => date.trim());
                 const status = stateSpan.text().trim();
-                const announcementDate = $(element).find('td').eq(4).text().trim();
+                let aDate = $(element).find('td').eq(4).text().trim();
+                const announcementDate = aDate.replace(/\./g, '-');
 
                 dataList.push({
                     pathId,
