@@ -34,7 +34,7 @@ import jba from './scraping/jba.js';
 import jbsc from './scraping/jbsc.js';
 import jbtp from './scraping/jbtp.js';
 import jepa from './scraping/jepa.js';
-import jntp from './scraping/jtp.js';
+import jntp from './scraping/jntp.js';
 import jungsoventure from './scraping/jungsoventure.js';
 import kocca from './scraping/kocca.js';
 import kstartup from './scraping/kstartup.js';
@@ -89,7 +89,7 @@ const scrapingFunctions = {
 };
 
 
-const sites = ['bepa', 'btp', 'cba', 'cbtp', 'creativekorea', 'cepa', 'ctp', 'dgtp', 'djbea', 'fanfandaero', 'gbsa', 'gbtp', 'gdtp', 'gepa', 'giba', 'giupmadang',
+const sites = ['bepa', 'btp', 'cba', 'cbtp', 'creativekorea', 'cepa', 'ctp', 'dgtp', 'djbea', 'djtp', 'fanfandaero', 'gbsa', 'gbtp', 'gdtp', 'gepa', 'giba', 'giupmadang',
      'gjtp', 'gntp', 'gtp', 'gwep', 'gwtp', 'itp', 'jba', 'jbsc', 'jbtp', 'jepa', 'jntp', 'jungsoventure', 'kocca', 'kstartup', 'riia', 'sba', 'seoultp', 'sjtp', 'sosanggongin24', 'ubpi', 'utp'];
 
 async function runTasks(tasks, maxConcurrent) {
