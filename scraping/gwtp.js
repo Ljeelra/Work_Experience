@@ -215,7 +215,7 @@ async function delay(ms) {
 async function gwtp(){
     const siteName= 'gwtp';
     try{        
-        //pathId, status 스크랩
+        //pathId
         const pathIds= await getPathIds();
    
         //데이터 업데이트를 위한 필터링

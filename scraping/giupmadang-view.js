@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds } from '../db/db.js';
+import { saveDetail, getAllPathIds, updateStatus } from '../db/db.js';
 
 const baseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/list.do';
 const detailBaseUrl = 'https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/';
@@ -71,6 +71,24 @@ async function filterPathId(scrapedData, siteName) {
         return scrapedData.filter(data => !existingPathIds.includes(data.pathId));
     } catch (error) {
         console.error('Error fetching existing path IDs:', error);
+        return []; // 오류 발생 시 빈 배열 반환
+    }
+}
+
+async function filterOutdatedPathId(scrapedData, siteName) {
+    try {
+        const scrapedPathIds = scrapedData.map(data => data.pathId);
+        const existingPathIds = await getAllPathIds(siteName);
+        
+        if (!Array.isArray(existingPathIds)) {
+            throw new Error('Existing Path IDs is not an array');
+        }
+
+        // 마감된 pathId 필터링: scrapedData에 없는 pathId들
+        const deadlinePathId = existingPathIds.filter(pathId => !scrapedPathIds.includes(pathId));
+        return deadlinePathId;
+    } catch (error) {
+        console.error('gwtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -211,8 +229,12 @@ async function giupmadang() {
         const allDataArrays = await Promise.all(pagePromises);
         
         const allDetails = allDataArrays.flat();
-
+        
         console.log(`총 ${allDetails.length}개의 상세페이지 URL이 스크랩되었습니다.`);
+        const filterForUpdate = await filterOutdatedPathId(allDetails, siteName);
+        //필터링된 pathId의 상태를 업데이트
+        await updateStatus(filterForUpdate, siteName);
+
         const newDetailData = await filterPathId(allDetails, siteName);
 
         if (newDetailData.length === 0) {
@@ -222,7 +244,7 @@ async function giupmadang() {
 
         console.log(`필터링된 후 데이터 개수: ${newDetailData.length}`);
 
-        // 상세 페이지에서 데이터 추출
+        //상세 페이지에서 데이터 추출
         const detailDataResults = [];
         console.log(`상세페이지 스크랩 시작합니다`);
         for (let i = 0; i < newDetailData.length; i += chunkSize2) {

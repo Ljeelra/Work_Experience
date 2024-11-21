@@ -1,7 +1,7 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds } from '../db/db.js';
+import { saveDetail, getAllPathIds, updateStatus } from '../db/db.js';
 import https from 'https';
 import fs from 'fs-extra';
 import path from 'path';
@@ -66,6 +66,20 @@ async function filterPathId(scrapedData, siteName) {
         return scrapedData.filter(pathId => !existingPathIds.includes(pathId));
     } catch (error) {
         console.error('Error fetching existing path IDs:', error);
+        return []; // 오류 발생 시 빈 배열 반환
+    }
+}
+
+async function filterOutdatedPathId(scrapedData, siteName) {
+    try {
+        const existingPathIds = await getAllPathIds(siteName);
+        
+        if (!Array.isArray(existingPathIds)) {
+            throw new Error('Existing Path IDs is not an array');
+        }
+        return existingPathIds.filter(pathId => !scrapedData.includes(pathId));
+    } catch (error) {
+        console.error('gwtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -301,6 +315,10 @@ async function dgtp(){
         
         pathIds = [...ongoingPathIds, ...openPathIds];
         console.log(`총 ${pathIds.length}개의 pathId가 스크랩되었습니다.`);
+
+        const filterForUpdate = await filterOutdatedPathId(pathIds, siteName);
+        // 필터링된 pathId의 상태를 업데이트
+        await updateStatus(filterForUpdate, siteName);
 
         const filterPathIds = await filterPathId(pathIds,siteName);
         if (filterPathIds.length === 0) {
