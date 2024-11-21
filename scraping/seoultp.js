@@ -49,7 +49,7 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
-async function getListPathIds(){
+async function getListPathIds() {
     const pathIds = [];
     let page = 1;
     const today = new Date();
@@ -57,82 +57,81 @@ async function getListPathIds(){
     const mm = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1 필요
     const dd = String(today.getDate()).padStart(2, '0');
     let scraping = true;
-    while(scraping){
-        try{
-            //console.log(`${page}페이지 pathid 추출 시작합니다`);
-            const formattedDate = `${yyyy}.${mm}.${dd}`;
-            //console.log(formattedDate);
     
-            const listHtml = await axiosInstance.get(listurl, {params: {page}});
+    while(scraping) {
+        try {
+            const formattedDate = `${yyyy}.${mm}.${dd}`;
+            const listHtml = await axiosInstance.get(listurl, { params: { page } });
             const $ = cheerio.load(listHtml.data);
-            
-            //console.log(listHtml.data);
-            //공고 등록일이 2023년도인 공고가 나오면 while문 페이지 스크랩 종료
-            let stopping = false;
-            $('table.board-list tbody tr').each((index, element) =>{
-            const dataText = $(element).find('td').eq(3).text().trim();
-            //console.log('공고작성일: '+dataText);
-            const year = dataText.split('.')[0];
-            //console.log('공고작성년도: '+year);
 
-            if(year ==='2023'){
-                stopping = true;
-                return false;
-            }
-            //a태그 text 값에 (~M.dd)가 있고 오늘 날짜랑 비교해서 이전이면 스크랩할 필요 없음.
+            let stopping = false;
+
+            $('table.board-list tbody tr').each((index, element) => {
+                const dataText = $(element).find('td').eq(3).text().trim();
+                const year = dataText.split('.')[0];
+
+                if (year === '2023') {
+                    stopping = true;
+                    return false;
+                }
+
                 const href = $(element).find('td.left > a').attr('href');
-                //console.log('href값',href);
                 const regex = /javascript:goBoardView\('.*','.*','([^']*)'\);$/;
                 const match = href.match(regex);
-                //console.log('match:',match);
-
                 const linkText = $(element).find('td.left > a').text().trim();
-                //console.log('a text값: ', linkText);
-                const dateRegex = /~?(\d{1,2}\.\s?\d{1,2})/; // 형식이 ~M.dd 인 경우
-                const dateMatch = linkText.match(dateRegex);
-                //console.log('dateMatch 값: ', dateMatch);
-
+                
+                const dateRegex1 = /~?(\d{1,2}\.\s?\d{1,2})\.?/; // 형식이 ~M.dd 또는 ~M.dd. 인 경우
+                const dateRegex2 = /(\d{1,2})\/(\d{1,2})/; // 형식이 MM/dd 인 경우
+                
+                
                 if (linkText.includes('모집마감')) {
-                    //console.log("모집마감이 포함된 경우, pathId 추출하지 않음.");
                     return; // "모집마감"이 포함된 경우 추출하지 않음
                 }
+                let linkDate = null;
 
-                if (dateMatch) {
-                    const [month, day] = dateMatch[1].split('.').map(Number);
-                    const linkDate = new Date(yyyy, month - 1, day); 
-                    if (linkDate < today) {
-                        //console.log(`오늘(${formattedDate})보다 이전 날짜가 있습니다: ${linkDate}`);
-                        return; // 오늘 날짜보다 이전인 경우 pathId를 추출하지 않음
+                const dateMatch1 = linkText.match(dateRegex1);
+                if (dateMatch1) {
+                    const [month, day] = dateMatch1[1].split('.').map(Number);
+                    linkDate = new Date(yyyy, month - 1, day);
+                    if(linkDate < today){
+                        return;
                     }
                 }
-            
-                if(match){
+
+                const dateMatch2 = linkText.match(dateRegex2);
+                if (dateMatch2) {
+                    const [month, day] = dateMatch2.slice(1).map(Number);
+                    linkDate = new Date(yyyy, month - 1, day);
+                    if(linkDate < today){
+                        return;
+                    }
+                }
+
+                if (match) {
                     const pathId = match[1];
-                    //console.log('pathId 출력: ',pathId);
                     pathIds.push(pathId);
                 }
-                     
-    
             });
-    
+
             if (stopping) {
                 scraping = false;
-              } else {
+            } else {
                 page++;
-              }
-        } catch(error){
-            console.error('seoultp getListPathIds()에서 에러 발생',error);
+            }
+        } catch(error) {
+            console.error('seoultp getListPathIds()에서 에러 발생', error);
         }
     }
-    //console.log('pathIds 출력: ',pathIds);
     return pathIds;
 }
+
 
 async function scrapeDetailPage(pathId, siteName){
     const data = {
         pathId: pathId,
         site: siteName,
         title: null,
+        requestEndedOn: null,
         announcementDate: null,//공고일
         contents: null,
         contentImage: [],
@@ -151,6 +150,31 @@ async function scrapeDetailPage(pathId, siteName){
         let aDate =  $('table.board-write tbody tr').find('td').eq(2).text().trim();
         data.announcementDate = aDate.replace(/\./g, '-');
         //console.log('공고일: ',data.announcementDate);
+
+        const dateRegex1 = /~?(\d{1,2})\.\s?(\d{1,2})\.?/; // 형식이 ~M.dd 또는 ~M.dd. 인 경우
+        const dateRegex2 = /(\d{2})\/(\d{2})/; // 형식이 MM/dd 인 경우
+
+        let requestEndedOn = null;
+
+        const dateMatch1 = data.title.match(dateRegex1);
+        if (dateMatch1) {
+            const month = dateMatch1[1].padStart(2, '0'); 
+            const day = dateMatch1[2].padStart(2, '0'); 
+            const currentYear = new Date().getFullYear(); 
+            requestEndedOn = `${currentYear}-${month}-${day}`;
+        }
+
+        const dateMatch2 = data.title.match(dateRegex2);
+        if (dateMatch2) {
+            const month = dateMatch2[1].padStart(2, '0'); 
+            const day = dateMatch2[2].padStart(2, '0'); 
+            const currentYear = new Date().getFullYear(); 
+            requestEndedOn = `${currentYear}-${month}-${day}`;
+        }
+
+        if (requestEndedOn) {
+            data.requestEndedOn = requestEndedOn;
+        }
 
         const tableCont = $('div.table-cont');
         const imgTags = tableCont.find('img');
