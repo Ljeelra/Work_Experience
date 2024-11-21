@@ -95,7 +95,9 @@ async function scrapeData(nonExistingItems, chunkSize, site) {
             const eligibility = $('th:contains("지원자격")').next('td').text().trim();
             const supportDetails = $('th:contains("지원사항")').next('td').text().trim();
             const programPeriodText = $('th:contains("프로그램 기간")').next('td').text().trim();
-            const [startDate, endDate] = programPeriodText.split('~').map(date => date.trim());
+            let [startDate, endDate] = programPeriodText.split('~').map(date => date.trim());
+            startDate = startDate.replace(/\./g, '-');;
+            endDate = endDate.replace(/\./g, '-');;
 
             const attachments = [];
             $('.vw_download a').each((i, element) => {
