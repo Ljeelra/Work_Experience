@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds, deleteDuplication } from '../db/db.js';
+import { saveDetail, getAllPathIds, deleteDuplication, updateStatus } from '../db/db.js';
 
 const baseUrl = 'https://www.smes.go.kr/main/sportsBsnsPolicy';
 const detailBaseUrl = 'https://www.smes.go.kr/main/sportsBsnsPolicy/view';
@@ -78,6 +78,24 @@ async function filterPathId(scrapedData, siteName) {
         return scrapedData.filter(data => !existingPathIds.includes(data.pathId));
     } catch (error) {
         console.error('jungsoventure Error fetching existing path IDs:', error);
+        return []; // 오류 발생 시 빈 배열 반환
+    }
+}
+
+async function filterOutdatedPathId(scrapedData, siteName) {
+    try {
+        const scrapedPathIds = scrapedData.map(data => data.pathId);
+        const existingPathIds = await getAllPathIds(siteName);
+        
+        if (!Array.isArray(existingPathIds)) {
+            throw new Error('Existing Path IDs is not an array');
+        }
+
+        // 마감된 pathId 필터링: scrapedData에 없는 pathId들
+        const deadlinePathId = existingPathIds.filter(pathId => !scrapedPathIds.includes(pathId));
+        return deadlinePathId;
+    } catch (error) {
+        console.error('gwtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
 }
@@ -262,8 +280,13 @@ async function jungsoventure() {
 
         const allDataArrays = await Promise.all(pagePromises);
         const allDetails = allDataArrays.flat();
-
         console.log(`총 ${allDetails.length}개의 상세페이지 URL이 스크랩되었습니다.`);
+        console.log(allDetails.length);
+
+        const filterForUpdate = await filterOutdatedPathId(allDetails, siteName);
+        console.log(filterForUpdate.length);
+        //필터링된 pathId의 상태를 업데이트
+        await updateStatus(filterForUpdate, siteName);        
 
         const newDetailData = await filterPathId(allDetails, siteName);
 
@@ -320,6 +343,6 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-//jungsoventure();
+jungsoventure();
 export default jungsoventure;
 

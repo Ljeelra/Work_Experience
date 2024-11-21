@@ -1,7 +1,7 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds } from '../db/db.js';
+import { saveDetail, getAllPathIds, updateStatus } from '../db/db.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -170,6 +170,24 @@ async function filterPathId(scrapedData, siteName) {
     }
 }
 
+async function filterOutdatedPathId(scrapedData, siteName) {
+    try {
+        const scrapedPathIds = scrapedData.map(data => data.pathId);
+        const existingPathIds = await getAllPathIds(siteName);
+        
+        if (!Array.isArray(existingPathIds)) {
+            throw new Error('Existing Path IDs is not an array');
+        }
+
+        // 마감된 pathId 필터링: scrapedData에 없는 pathId들
+        const deadlinePathId = existingPathIds.filter(pathId => !scrapedPathIds.includes(pathId));
+        return deadlinePathId;
+    } catch (error) {
+        console.error('gwtp Error fetching existing path IDs:', error);
+        return []; // 오류 발생 시 빈 배열 반환
+    }
+}
+
 async function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -265,6 +283,10 @@ async function jepa(){
             }
         }
         console.log(`추출된 PathId는 총 ${allPathIds.length} 입니다. `);
+
+        const filterForUpdate = await filterOutdatedPathId(allPathIds, siteName);
+        //필터링된 pathId의 상태를 업데이트
+        await updateStatus(filterForUpdate, siteName);        
 
         const filterePathIds = allPathIds.map(item => item.pathId); // filterPathIds에 pathId 값만 저장
         const filteredPathIds = await filterPathId(filterePathIds, siteName);

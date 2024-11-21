@@ -1,7 +1,7 @@
 //process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds } from '../db/db.js';
+import { saveDetail, getAllPathIds, updateStatus } from '../db/db.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -101,7 +101,21 @@ async function filterPathId(scrapedData, siteName) {
         console.error('ubpi Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
-}    
+}   
+
+async function filterOutdatedPathId(scrapedData, siteName) {
+    try {
+        const existingPathIds = await getAllPathIds(siteName);
+        
+        if (!Array.isArray(existingPathIds)) {
+            throw new Error('Existing Path IDs is not an array');
+        }
+        return existingPathIds.filter(pathId => !scrapedData.includes(pathId));
+    } catch (error) {
+        console.error('gwtp Error fetching existing path IDs:', error);
+        return []; // 오류 발생 시 빈 배열 반환
+    }
+}
 
 async function scrapeDetailPage(onlyPathId, siteName, menuNo){
     const data={
@@ -184,6 +198,12 @@ async function ubpi(){
             }
         }
         //console.log(allPathIds);
+
+        const filterForUpdate = await filterOutdatedPathId(allPathIds, siteName);
+        // 필터링된 pathId의 상태를 업데이트
+        await updateStatus(filterForUpdate, siteName);
+
+
         const filterPathIds = await filterPathId(allPathIds, siteName);
         if (filterPathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
@@ -235,5 +255,5 @@ async function saveDataInChunks(data, siteName) {
     }
 }
 
-ubpi();
+//ubpi();
 export default ubpi;

@@ -1,7 +1,7 @@
 //process.env.NODE_TLS_REJECT_UNAUTHORIZED ="0";
 import axios from 'axios';
 import * as cheerio from "cheerio";
-import { saveDetail, getAllPathIds } from '../db/db.js';
+import { saveDetail, getAllPathIds, updateStatus } from '../db/db.js';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -71,6 +71,20 @@ async function getPathIds() {
     
 }
 
+async function filterOutdatedPathId(scrapedData, siteName) {
+    try {
+        const existingPathIds = await getAllPathIds(siteName);
+        
+        if (!Array.isArray(existingPathIds)) {
+            throw new Error('Existing Path IDs is not an array');
+        }
+        return existingPathIds.filter(pathId => !scrapedData.includes(pathId));
+    } catch (error) {
+        console.error('gwtp Error fetching existing path IDs:', error);
+        return []; // 오류 발생 시 빈 배열 반환
+    }
+}
+
 async function filterPathId(scrapedData, siteName) {
     try {
         const existingPathIds = await getAllPathIds(siteName);
@@ -85,6 +99,10 @@ async function filterPathId(scrapedData, siteName) {
         console.error('gwtp Error fetching existing path IDs:', error);
         return []; // 오류 발생 시 빈 배열 반환
     }
+}
+
+async function checkUpdateStatus(){
+
 }
 
 async function scrapeDetailPage(pathId, siteName){
@@ -196,12 +214,17 @@ async function delay(ms) {
 
 async function gwtp(){
     const siteName= 'gwtp';
-    try{
-        
-        //pathId 스크랩
-        const pathIds = await getPathIds();
+    try{        
+        //pathId
+        const pathIds= await getPathIds();
    
-        //필터링 체크
+        //데이터 업데이트를 위한 필터링
+        const filterForUpdate = await filterOutdatedPathId(pathIds, siteName);
+
+        //필터링된 pathId의 상태를 업데이트
+        await updateStatus(filterForUpdate, siteName);
+
+        //데이터 저장을 위한 필터링
         const filterPathIds = await filterPathId(pathIds, siteName);
         if (filterPathIds.length === 0) {
             console.log('모든 데이터가 필터링되었습니다. 새로운 데이터가 없습니다.');
