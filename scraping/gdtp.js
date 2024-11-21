@@ -122,9 +122,9 @@ async function scrapeDetailPage(cate, pathId, siteName){
         
         data.title= $('section.pstitle').find('h3').text().trim();
         const dateTerm = $('div.sgroup.sgroup01').find('.psc_cont').text().trim();
-        const applyDate = dateTerm.split('~');
-        data.requestStartedOn = applyDate[0]?.trim() || 'N/A';
-        data.requestEndedOn = applyDate[1]?.trim() || 'N/A';
+        const [sDate, eDate] = dateTerm.split('~');
+        data.requestStartedOn = sDate.replace(/년\s|월/g, "-").slice(0, -1);
+        data.requestEndedOn = eDate.replace(/년\s|월/g, "-").slice(0, -1);
         data.assistance = $('div.sgroup.sgroup02').find('.psc_cont').text().trim().replace(/[\n\t]/g, '');
         data.supportTarget = $('div.sgroup.sgroup03').find('.psc_cont').text().trim().replace(/\n/g, '');
         data.businessPerpose = $('div.sgroup.sgroup04').find('.psc_cont').text().trim();
