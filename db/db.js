@@ -118,10 +118,17 @@ export async function getAllPathIds(siteName) {
 
 export async function updateStatus(pathIds, siteName){
     const pathIdsString = pathIds.map(id => `'${id}'`).join(',');
-    const updateQuery = `UPDATE site_${siteName} SET status=0 WHERE pathId IN (${pathIdsString})`;
+    const updateQuery = `UPDATE site_${siteName} SET status=0 WHERE pathId IN (${pathIdsString}) AND status != 0`;
     try{
         const result = await executeQuery(updateQuery);
-        console.log(`${result.affectedRows} rows updated.`);
+        const affectedRows = result[0]?.affectedRows;
+        
+        if (affectedRows !== undefined) {
+            console.log(`${affectedRows} rows updated.`);
+        } else {
+            console.log('No rows updated or unexpected result structure.');
+        }
+
     }catch(error){
         console.error('status update 오류:', error);
         throw error; // 예외를 상위 호출자에게 전달
