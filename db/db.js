@@ -116,6 +116,18 @@ export async function getAllPathIds(siteName) {
     }
 }
 
+export async function updateStatus(pathIds, siteName){
+    const pathIdsString = pathIds.map(id => `'${id}'`).join(',');
+    const updateQuery = `UPDATE site_${siteName} SET status=0 WHERE pathId IN (${pathIdsString})`;
+    try{
+        const result = await executeQuery(updateQuery);
+        console.log(`${result.affectedRows} rows updated.`);
+    }catch(error){
+        console.error('status update 오류:', error);
+        throw error; // 예외를 상위 호출자에게 전달
+    }
+}
+
 //중소벤처24와 소상공인24 중복 데이터 삭제
 export async function deleteDuplication(){
     const deleteQuery = `DELETE j FROM site_jungsoventure j JOIN site_sosanggongin24 s ON j.pathId = s.pathId`;
