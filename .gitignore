@@ -256,3 +256,8 @@ scraping/images/itpimages/image_\[제조혁신센터]「2024_LS_ELECTRIC(주)_�
 scraping/images/itpimages/image_\[콘텐츠기업지원센터]2024_인천콘텐츠코리아랩_사업화_베이스먼트_멘토링_참여자_모집공고_1_8343_1_2024-10-24.png
 scraping/images/itpimages/image_\[AI데이터센터]「2024년_AI∙SW_기술_활용인력_양성_사업」디지털_트렌드_세미나_안내_0_8875_0_2024-10-24.png
 scraping/images/jbaimages/image_24_제주자원활용_컨설팅지원사업_선정업체_공고_및_협약식_일정안내_0_520_0_2024-11-07.png
+dayUpdate.sh
+master.sh
+scraping.sh
+update.sh
+updateStatus.sh
