@@ -233,7 +233,11 @@ async function giupmadang() {
         console.log(`총 ${allDetails.length}개의 상세페이지 URL이 스크랩되었습니다.`);
         const filterForUpdate = await filterOutdatedPathId(allDetails, siteName);
         //필터링된 pathId의 상태를 업데이트
-        await updateStatus(filterForUpdate, siteName);
+        if (filterForUpdate.length > 0) {
+            await updateStatus(filterForUpdate, siteName);
+        } else {
+            console.log('No outdated pathIds to update.');
+        }
 
         const newDetailData = await filterPathId(allDetails, siteName);
 
