@@ -201,7 +201,11 @@ async function ubpi(){
 
         const filterForUpdate = await filterOutdatedPathId(allPathIds, siteName);
         // 필터링된 pathId의 상태를 업데이트
-        await updateStatus(filterForUpdate, siteName);
+        if (filterForUpdate.length > 0) {
+            await updateStatus(filterForUpdate, siteName);
+        } else {
+            console.log('No outdated pathIds to update.');
+        }
 
 
         const filterPathIds = await filterPathId(allPathIds, siteName);
